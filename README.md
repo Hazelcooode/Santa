@@ -2,9 +2,15 @@
 
 A personal assistant for young people living alone, based on [ideas.txt](ideas.txt) and the [Exa Junction challenge](challenge.txt). Sola turns everyday research into a short, sourced plan that the user can approve.
 
-**Implemented:** a responsive frontend with fictional data and local interactions. **Not implemented:** backend, live Exa research, model calls, authentication, camera processing, actual calendars, purchases, reservations, messaging or emergency services.
+**Implemented:** a responsive website and mobile app, plus a Python backend ([backend/README.md](backend/README.md)) with sign-in, live Exa research through three bounded agents, Cloudinary media, and APIs for every feature in the function design. **Simulated:** purchases, reservations, rides, messaging and emergency delivery. Camera analysis is mocked as on-device detections.
 
-## Run the UI
+## Run with the backend
+
+```bash
+backend/run.sh   # http://127.0.0.1:8000 · test@taimi.app / taimi-demo-2026
+```
+
+## Run the UI only
 
 Requires Node.js 20+. No dependency installation or API keys needed.
 
