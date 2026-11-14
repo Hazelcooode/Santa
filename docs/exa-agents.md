@@ -1,3 +1,5 @@
+> Runtime update: the three roles execute in backend/app/agents. Live mode blocks synthetic fallback. Grocery queries include generic details and enforce user-selected domains; matching saved quotes can satisfy comparison without new calls. See [local testing](local-testing.md).
+
 # Exa integration and three-agent design
 
 Exactly **three application agents**. Exa is a shared tool, and Gemini/Nemotron are possible model backends inside these roles. A deterministic executor performs approved writes; it is not an agent. Avoid recursive subagents for the MVP.
@@ -76,3 +78,8 @@ No results → broaden one allowed dimension and disclose it. Blocked page → m
 ## Any-item comparison and monitoring
 
 Coordinator accepts open requirements or an exact canonical variant, Researcher collects comparable seller offers and mandatory fees, and Planner explains eligible alternatives. The deterministic scheduler reruns these roles for due watches; alert thresholds and deduplication remain code, not agent decisions. See [Price watch](price-watch.md) for category identity rules, ticket fee/time matching and the live implementation backlog.
+
+
+## Individual event detail results
+
+Event extraction now classifies each page and requests exactly one event per result with verbatim evidence. Listing/roundup/calendar pages are excluded, with one bounded detail-page refinement when needed. This stays within the existing Researcher and the three application agents. See [UI and research safeguards](ui-redesign.md).

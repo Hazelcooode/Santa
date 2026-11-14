@@ -13,19 +13,24 @@ SCHEMAS = {
         "type": "object",
         "properties": {
             "product": {"type": "string", "description": "Exact product name on the page"},
-            "price": {"type": "number", "description": "Current price for one package as a number, no currency symbol. 0 if not shown."},
+            "price": {"type": "number", "description": "Current package price, not per kg/litre, no currency symbol. Omit this optional field when the price is not shown; never invent a price."},
             "currency": {"type": "string", "description": "ISO currency code, e.g. EUR"},
             "package_size": {"type": "string"},
             "store": {"type": "string", "description": "Retailer or store name"},
-            "is_requested_item": {"type": "boolean", "description": "true if this product is the item named in the request, "
-                                  "in any language or brand (e.g. Finnish 'kaurajuoma' is oat milk); false if it is a different product"},
         },
-        "required": ["product", "price"],
+        "required": ["product"],
     },
     "event": {
         "type": "object",
         "properties": {
             "title": {"type": "string"},
+            "event_page_type": {"type":"string","enum":["single_event","event_listing","article","unknown"],"description":"single_event only when this page is dedicated to exactly ONE named event/edition; directories, calendars and top-N collections are event_listing. Never merge unrelated events."},
+            "event_evidence": {"type":"string","description":"Verbatim source text identifying this one event, venue and schedule. Empty when unsupported."},
+            "location_match": {"type": "boolean", "description": "True ONLY if this event is in the destination requested in the query. Do not substitute the user's home city."},
+            "end_date": {"type": "string", "description": "Event end date YYYY-MM-DD, not article publication date; empty if unknown"},
+            "start_time": {"type": "string", "description": "Local event start time including timezone if stated; empty if unknown"},
+            "end_time": {"type": "string", "description": "Local event end time; empty if unknown"},
+            "country": {"type": "string"},
             "date_text": {"type": "string", "description": "Human readable date/time, e.g. 'Fri 20 Nov, 22:00'"},
             "start_date": {"type": "string", "description": "ISO date YYYY-MM-DD of the next occurrence, empty if unknown"},
             "venue": {"type": "string"},
@@ -34,7 +39,7 @@ SCHEMAS = {
             "category": {"type": "string", "description": "One or two words, e.g. jazz, market, sport"},
             "summary": {"type": "string", "description": "One short sentence about what to expect"},
         },
-        "required": ["title"],
+        "required": ["title", "location_match", "event_page_type"],
     },
     "travel": {
         "type": "object",
@@ -81,10 +86,37 @@ SCHEMAS = {
     },
 }
 
+# The schema summary is evaluated against this query's complete requirements,
+# not a generic description. Unknown evidence must never be reported as a match.
+for _key in ('price', 'product'):
+    SCHEMAS[_key]['properties'].update({
+        'attribute_checks': {'type':'array','items':{'type':'object','properties':{'key':{'type':'string'},'value':{'type':'string'},'exact_match':{'type':'boolean'},'evidence':{'type':'string'}},'required':['key','value','exact_match','evidence']},'description':'One check for EACH requested attribute. Copy its exact requested key/value. exact_match true only when this product-specific evidence verifies the requested attribute without substitutions; otherwise false.'},
+        'item_type_match': {'type':'boolean','description':'True only for the requested actual item, not seasoning, accessories, sauces or substitutes intended for it.'},
+        'category_match': {'type':'boolean','description':'Does the actual product belong to the requested category/aisle? Infer from product identity, not intended use.'},
+        'price_text': {'type': 'string', 'description': 'Verbatim current full package/item price including decimal separator/currency, for example 2,49 €. Never kg/l price, old price, installment, membership-only or multi-buy price. Empty if unavailable.'},
+        'price_basis': {'type': 'string', 'enum': ['package', 'item', 'unit_weight', 'unknown']},
+        'availability': {'type': 'string', 'enum': ['in_stock', 'out_of_stock', 'preorder', 'unknown'], 'description': 'in_stock only with explicit current evidence that this exact variant can be purchased now.'},
+        'availability_evidence': {'type': 'string', 'description': 'Verbatim availability text; empty if unknown.'},
+        'image_urls': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Actual product image URLs from this page; never invent URLs.'},
+        'page_type': {'type': 'string', 'enum': ['product', 'category', 'search', 'article', 'unknown']},
+        'request_match': {'type': 'string', 'enum': ['matches', 'mismatch', 'unknown'],
+                          'description': 'Does this ONE product satisfy ALL requested type, brand, variant and technical requirements? Account for translations, units and model families; unknown when not evidenced.'},
+        'match_evidence': {'type': 'string', 'description': 'Verbatim product-specific page text supporting ALL requested requirements. Empty if not verifiable; never invent or combine multiple products.'},
+    })
+
+
+def _usable(qq, result):
+    from ..services.shopping_prices import matches
+    from ..services.price_evidence import quote
+    s = result.get('summary') if isinstance(result.get('summary'), dict) else {}
+    minor, reason = quote(s, qq.get('currency', 'EUR'), package=qq.get('schema') == 'price')
+    return minor is not None and (qq.get('kind') != 'watch' or (s.get('availability') == 'in_stock' and s.get('availability_evidence'))) and matches(qq.get('requirements') or {}, result)
+
 
 def _run_query(user, qq):
     res = exa_client.search(
         user["id"], qq["kind"], qq["query"],
+        force_refresh=qq.get("forceRefresh", False),
         num_results=qq.get("num_results", 5),
         include_domains=qq.get("include_domains"),
         user_location=qq.get("user_location"),
@@ -92,11 +124,49 @@ def _run_query(user, qq):
         summary_query=qq.get("summary_query") if qq.get("schema") else None,
         summary_schema=SCHEMAS.get(qq.get("schema")),
     )
+    if (res['available'] and qq.get('product_refinement') and
+            not any(_usable(qq, r) for r in res['results'])):
+        # One bounded refinement, always retaining the user's chosen websites.
+        # Cached requests reuse both steps; provider failures are not widened.
+        refined = exa_client.search(
+            user['id'], qq['kind'], qq['product_refinement'],
+            force_refresh=qq.get('forceRefresh', False), num_results=6,
+            include_domains=qq.get('include_domains'), user_location=qq.get('user_location'),
+            summary_query=qq.get('summary_query'), summary_schema=SCHEMAS.get(qq.get('schema')),
+        )
+        if refined['available']:
+            # Keep result-level freshness so a cached first step cannot make a
+            # live refinement look cached (or the reverse).
+            combined = []
+            seen = set()
+            for out in (refined, res):
+                for r in out['results']:
+                    if r['url'] not in seen:
+                        seen.add(r['url'])
+                        combined.append(dict(r, fetchedAt=out.get('fetchedAt'), cached=out.get('source') == 'cache'))
+            return dict(refined, results=combined, costUsd=res.get('costUsd', 0)+refined.get('costUsd', 0))
+        res['refinementReason'] = refined.get('reason')
+    if (res['available'] and qq.get('event_refinement') and not any(
+            isinstance(r.get('summary'),dict) and r['summary'].get('event_page_type') == 'single_event'
+            and r['summary'].get('location_match') is True for r in res['results'])):
+        extra=exa_client.search(user['id'],qq['kind'],qq['event_refinement'],num_results=8,force_refresh=qq.get('forceRefresh',False),
+            user_location=qq.get('user_location'),include_domains=qq.get('include_domains'),
+            summary_query=qq.get('summary_query'),summary_schema=SCHEMAS.get(qq.get('schema')))
+        if extra['available']:
+            merged=[]; seen=set()
+            for out in (extra,res):
+                for row in out['results']:
+                    if row['url'] not in seen:
+                        seen.add(row['url'])
+                        merged.append(dict(row,fetchedAt=out.get('fetchedAt'),cached=out.get('source')=='cache'))
+            return dict(extra,results=merged,costUsd=res.get('costUsd',0)+extra.get('costUsd',0))
+        res['refinementReason']=extra.get('reason')
     priced = [r for r in res["results"] if isinstance(r.get("summary"), dict) and (r["summary"].get("price") or 0) > 0]
     if res["available"] and qq.get("refine_without_domains") and not priced:
         # One refinement cycle: widen from preferred retailer domains to any local page.
         res2 = exa_client.search(
             user["id"], qq["kind"], qq["query"], num_results=qq.get("num_results", 5),
+            force_refresh=qq.get("forceRefresh", False),
             user_location=qq.get("user_location"), summary_query=qq.get("summary_query"),
             summary_schema=SCHEMAS.get(qq.get("schema")),
         )
@@ -114,10 +184,13 @@ def research(user, spec):
 
     available = any(o["available"] for o in outs) if outs else False
     reasons = sorted({o.get("reason") for o in outs if not o["available"] and o.get("reason")})
-    candidates, sources, seen = [], [], set()
+    candidates, sources, seen, candidate_seen = [], [], set(), set()
     for qq, out in zip(queries, outs):
         for r in out["results"]:
-            candidates.append(dict(r, key=qq["key"], schema=qq.get("schema")))
+            if (qq['key'],r['url']) in candidate_seen:
+                continue
+            candidate_seen.add((qq['key'],r['url']))
+            candidates.append(dict(r, key=qq["key"], schema=qq.get("schema"), fetchedAt=r.get('fetchedAt') or out.get("fetchedAt"), cached=r.get('cached', out.get("source") == "cache")))
             if r["url"] not in seen:
                 seen.add(r["url"])
                 sources.append({"title": r["title"], "url": r["url"], "domain": r["domain"],
@@ -126,8 +199,10 @@ def research(user, spec):
     return {
         "available": available,
         "reason": ", ".join(reasons) or ("no results" if not available else None),
+        "errors": [{"code": o.get("errorCode"), "message": o.get("reason"), "retryable": o.get("retryable", True)} for o in outs if o.get("errorCode")],
         "candidates": candidates,
         "sources": sources,
+        "lookups": [{'itemId': qq['key'], 'domains': qq.get('include_domains') or [], 'status': 'searched' if out['available'] else 'failed', 'pages': len(out['results']), 'reason': out.get('reason') or out.get('refinementReason')} for qq,out in zip(queries,outs)],
         "byKey": {qq["key"]: out for qq, out in zip(queries, outs)},
         "costUsd": round(sum(o.get("costUsd", 0) for o in outs), 4),
     }

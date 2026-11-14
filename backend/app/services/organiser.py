@@ -2,25 +2,28 @@
 list, multi-strategy price search, online order / printable list and a grocery
 run scheduled into a free calendar slot."""
 import html
+import math
+from urllib.parse import urlparse
 from datetime import timedelta
 
 from .. import agents, db, mock_data
 from ..errors import ApiError
-from . import calendar, proposals
+from . import calendar, proposals, shopping_prices
 
 PRIO_LABEL = {1: "Urgent", 2: "This week", 3: "Nice to have"}
 
 
 # ------------------------------------------------------------------ shopping
-def _item(row):
+def _item(row, user=None):
     qty = row["qty"]
-    return {"id": row["id"], "name": row["name"], "qty": int(qty) if float(qty).is_integer() else qty, "prio": row["prio"],
-            "from": row["origin"], "note": row["note"] or "", "bought": row["bought"] or False, "version": row["version"]}
+    item = {"id": row["id"], "name": row["name"], "qty": int(qty) if float(qty).is_integer() else qty, "prio": row["prio"],
+            "from": row["origin"], "note": row["note"] or "", "bought": row["bought"] or False, "version": row["version"], "brand": row.get("brand") or "", "details": row.get("details") or "", "attributes": db.loads(row.get("attributes"), {})}
+    return shopping_prices.attach(user, item) if user else item
 
 
 def list_items(user, include_bought=True):
     rows = db.q("SELECT * FROM shopping_items WHERE user_id=? ORDER BY prio, created_at", (user["id"],))
-    return [_item(r) for r in rows if include_bought or not r["bought"]]
+    return [_item(r, user) for r in rows if include_bought or not r["bought"]]
 
 
 def get_item(user, item_id):
@@ -30,7 +33,7 @@ def get_item(user, item_id):
     return row
 
 
-def add_item(user, name, qty=1, prio=2, origin="you", note=None, regular_id=None):
+def add_item(user, name, qty=1, prio=2, origin="you", note=None, regular_id=None, brand="", details="", attributes=None):
     name = " ".join((name or "").split())[:80]
     if not name:
         raise ApiError(400, "INVALID_INPUT", "Item name is required.")
@@ -38,7 +41,8 @@ def add_item(user, name, qty=1, prio=2, origin="you", note=None, regular_id=None
     db.run("INSERT INTO shopping_items(id,user_id,name,qty,prio,origin,note,regular_id,created_at) VALUES(?,?,?,?,?,?,?,?,?)",
            (iid, user["id"], name, max(0.01, float(qty or 1)), int(prio) if int(prio) in (1, 2, 3) else 2, origin,
             note if note is not None else ("Added by you" if origin == "you" else None), regular_id, db.iso()))
-    return _item(get_item(user, iid))
+    db.run("UPDATE shopping_items SET brand=?,details=?,attributes=? WHERE id=?", ((brand or "")[:100],(details or "")[:400],db.dumps(attributes or {}),iid))
+    return _item(get_item(user, iid), user)
 
 
 def update_item(user, item_id, changes, expected_version=None):
@@ -54,13 +58,20 @@ def update_item(user, item_id, changes, expected_version=None):
         fields["prio"] = changes["prio"]
     if "note" in changes:
         fields["note"] = (changes["note"] or "")[:200]
+    for key in ("brand", "details"):
+        if key in changes:
+            fields[key] = (changes[key] or "")[:100 if key == "brand" else 400]
+    if "attributes" in changes:
+        fields["attributes"] = db.dumps(changes["attributes"] or {})
     if "bought" in changes:
         b = changes["bought"]
         fields["bought"] = (b if isinstance(b, str) else db.iso()) if b else None
     if fields:
         sets = ", ".join("%s=?" % k for k in fields) + ", version=version+1"
-        db.run("UPDATE shopping_items SET %s WHERE id=? AND user_id=?" % sets, tuple(fields.values()) + (item_id, user["id"]))
-    return _item(get_item(user, item_id))
+        cursor = db.run("UPDATE shopping_items SET %s WHERE id=? AND user_id=? AND version=?" % sets, tuple(fields.values()) + (item_id, user["id"], row["version"]))
+        if cursor.rowcount != 1:
+            raise ApiError(409,"VERSION_CONFLICT","This item changed on another device. Reload before editing.")
+    return _item(get_item(user, item_id), user)
 
 
 def delete_item(user, item_id):
@@ -138,16 +149,42 @@ def regulars(user):
 
 
 # --------------------------------------------------------------------- deals
-def find_deals(user, strategy="multi", items=None):
+def find_deals(user, strategy="multi", items=None, force_refresh=False, item_ids=None, refresh_id=None, cached_only=False):
     if strategy not in ("multi", "single", "mall", "nearest", "route"):
         raise ApiError(400, "INVALID_INPUT", "strategy must be multi, single, mall, nearest or route.")
     if items is None:
         items = list_items(user, include_bought=False)
-    items = [{"id": str(i.get("id") or ""), "name": str(i.get("name") or "")[:80], "qty": i.get("qty") or 1, "prio": i.get("prio", 2)}
+    if item_ids is not None:
+        items = [i for i in items if i["id"] in item_ids]
+    items = [{"brand": i.get("brand") or "", "details": i.get("details") or "", "attributes": i.get("attributes") or {}, "id": str(i.get("id") or ""), "name": str(i.get("name") or "")[:80], "qty": i.get("qty") or 1, "prio": i.get("prio", 2)}
              for i in items if (i.get("name") or "").strip() and not i.get("bought")]
+    if any(not math.isfinite(float(i["qty"])) or float(i["qty"]) <= 0 or float(i["qty"]) > 10000 for i in items):
+        raise ApiError(400,"INVALID_INPUT","Quantity must be positive and at most 10000.")
     if not items:
         raise ApiError(422, "EMPTY_LIST", "Your list is empty.")
-    res = agents.run(user, "groceries", {"items": items, "strategy": strategy})
+    research_user = shopping_prices.search_user(user,resolve_shops=not cached_only)
+    saved_candidates = []
+    if not force_refresh:
+        for it in items:
+            enriched = shopping_prices.attach(user, dict(it))
+            for quote in enriched["offers"]:
+                if quote["stale"]:
+                    continue
+                saved_candidates.append({"_identity_verified": True, "key": it["id"], "schema": "price", "url": quote["url"], "domain": urlparse(quote["url"]).hostname.removeprefix("www."),
+                    "image": quote.get("image"), "title": quote["product"], "summary": {"product": quote["product"], "price": quote["priceMinor"]/100, "currency": quote["currency"], "store": quote["store"],
+                    "price_text": format(quote["priceMinor"]/100, ".2f"), "price_basis": quote.get("priceBasis") or "package",
+                    "request_match": "matches", "match_evidence": quote.get('evidence') or quote['product']},
+                    "highlights": [quote["evidence"]], "fetchedAt": quote["fetchedAt"], "cached": True})
+    quoted_context = shopping_prices.context_hash(user)
+    if cached_only:
+        research_user=dict(research_user,preferred_domains=sorted({c['domain'] for c in saved_candidates}) or research_user.get('preferred_domains',[]))
+        from ..agents import planner,coordinator
+        spec=coordinator.plan(research_user,'groceries',{'items':items,'strategy':strategy,'cachedItemIds':[i['id'] for i in items]})
+        res=planner.plan_groceries(research_user,spec,{'available':True,'candidates':saved_candidates,'sources':[],'lookups':[]})
+        res['notice']='Compared saved quotes only. Unknown items stay unpriced; no new price research was started.'
+    else:
+        res = agents.run(research_user, "groceries", {"items": items, "strategy": strategy, "forceRefresh": force_refresh, "savedCandidates": saved_candidates, "cachedItemIds": list({c["key"] for c in saved_candidates})})
+    shopping_prices.persist_quotes(user, items, res, refresh_id or db.new_id("rf_"), quoted_context)
     res.update(proposals.create(user, "shopping_plan", res, ttl_min=180))
     return res
 

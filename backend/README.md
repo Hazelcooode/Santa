@@ -1,3 +1,5 @@
+> Current setup: use [local testing](../docs/local-testing.md), [deployment](../docs/deployment.md) and [use cases](../docs/use-cases.md). On Windows run backend/run.ps1 -Port 239 -Reload from the root. The Bash helper below is for Linux/macOS. Both interfaces now have connected Shopping, and the website has live watches. Set DATA_MODE=live to block demo fallback and let users choose their city/chains. SQLite migration adds generic details and source quotes. Older website-fixture-only statements below are superseded.
+
 # Taimi backend
 
 Python (FastAPI) backend covering every feature in `final_function_design.md`, compatible with both existing frontends. It serves the API plus the website (`/`) and the mobile app (`/mobile/`) behind sign-in.
@@ -16,7 +18,7 @@ Configuration lives in `backend/.env` (copy `.env.example`). **Without `EXA_API_
 ## Frontend compatibility
 
 - **Mobile (`mobile/`)**: `data.js` now reads `USE_BACKEND` from `window.FIGMENT_USE_BACKEND`, which the backend sets only when it serves the page. Opened as static files, the app still runs on its mocks. The six calls it already makes keep their exact request and response shapes: `POST /api/deals`, `/api/explore`, `/api/products`, `/api/medicine`, `/api/wellbeing`, `/api/chat`. Extra fields (`mode`, `notice`, `proposalId`, `unpriced`, `images`…) are additive. `app/static/taimi-bridge.js` loads the first-run state from the signed-in account (`GET /api/v1/state`, same shape as `FigmentAPI.seed()`), redirects to `/login` on 401 and adds "Sign out".
-- **Website (`src/`)**: served unchanged at `/` behind sign-in. Its screens still use local fixtures. The `/api/v1` endpoints follow `docs/api.md` and `docs/price-watch.md`, so its planned `api-client.js` can be wired up next.
+- **Website (`src/`)**: account-connected Groceries and Price watch; other screens are labeled fixtures. Static Node preview is still a fixture-only demo.
 - Auth: an HttpOnly session cookie, so the existing same-origin `fetch()` calls work as they are, or `Authorization: Bearer <token>` (from `/api/v1/auth/login`) for native clients.
 
 ## Feature map
@@ -107,3 +109,6 @@ scripts/            fetch_edge_models.sh (on-device model weights + runtime)
 app/db.py           SQLite schema (data/taimi.sqlite3)
 tests/              API + live-path tests (fake Exa)
 ```
+
+
+Current price validation, saved research/trips and Cloudinary controls are documented in [the workflow](../docs/media-and-trips.md). The website and mobile web app load shared connected watch/Discover modules. Exa and Cloudinary provider calls were mocked during this update.

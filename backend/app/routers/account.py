@@ -19,7 +19,7 @@ CONSENT_SCOPES = ("memory", "location_trail", "camera_derived_inventory", "healt
 
 class LoginIn(BaseModel):
     email: str
-    password: str
+    password: str = Field(..., max_length=200)
 
 
 class RegisterIn(BaseModel):
@@ -189,7 +189,11 @@ else{const j=await r.json().catch(()=>({}));err.textContent=(j.error&&j.error.me
 
 @router.get("/login", response_class=HTMLResponse, include_in_schema=False)
 def login_page():
-    return HTMLResponse(LOGIN_HTML.replace("__EMAIL__", settings.test_email))
+    import html
+    page = LOGIN_HTML.replace("__EMAIL__", html.escape(settings.test_email if settings.seed_demo_account else ""))
+    if not settings.seed_demo_account:
+        page = page.replace('<div class="hint">Demo account: <b></b> (password in backend/README.md)</div>', '')
+    return HTMLResponse(page.replace('</form>', '<p style="margin-top:15px"><a href="/register">Create a fresh account</a></p></form>'))
 
 
 @router.get("/logout", include_in_schema=False)
@@ -198,3 +202,13 @@ def logout_page(request: Request):
     resp = RedirectResponse("/login", status_code=303)
     resp.delete_cookie(auth.COOKIE, path="/")
     return resp
+
+
+@router.get("/register", response_class=HTMLResponse, include_in_schema=False)
+def register_page():
+    page = LOGIN_HTML.replace("__EMAIL__", "")
+    page = page.replace('<button type="submit">Sign in</button>', '<label for="n">Name</label><input id="n" name="name" maxlength="60" required><label for="c">City</label><input id="c" name="city" maxlength="100" required><label for="cc">Country code (e.g. FI)</label><input id="cc" name="country" minlength="2" maxlength="2" required><button type="submit">Create account</button>')
+    page = page.replace('<div class="hint">Demo account: <b></b> (password in backend/README.md)</div>', '<p style="margin-top:15px"><a href="/login">Already have an account? Sign in</a></p>')
+    page = page.replace("fetch('/api/v1/auth/login'", "fetch('/api/v1/auth/register'")
+    page = page.replace('JSON.stringify({email:e.target.email.value,password:e.target.password.value})', 'JSON.stringify({email:e.target.email.value,password:e.target.password.value,name:e.target.elements.namedItem("name").value,city:e.target.city.value,country:e.target.country.value.toUpperCase(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone})')
+    return HTMLResponse(page)

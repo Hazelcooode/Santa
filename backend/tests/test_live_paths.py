@@ -10,6 +10,10 @@ from app.config import settings
 
 
 def R(url, title, summary=None, highlights=None, image=None):
+    if summary and summary.get('price'):
+        summary=dict(summary,price_text=summary.get('price_text') or format(summary['price'],'.2f'),price_basis='package',availability='in_stock',availability_evidence='In stock')
+    if summary and summary.get('start_date'):
+        summary=dict(summary,location_match=True,event_page_type="single_event")
     return SimpleNamespace(url=url, title=title, published_date=None, image=image, favicon=None,
                            highlights=highlights or ["snippet about " + title], summary=json.dumps(summary) if summary else None)
 
@@ -25,16 +29,18 @@ class FakeExa:
             res = [R("https://www.s-kaupat.fi/tuote/oat", "Oat drink 1L", {"product": "Oat milk drink 1 l", "price": 1.65, "currency": "EUR"}),
                    R("https://www.lidl.fi/p/oat", "Oat drink", {"product": "Oat milk 1 L", "price": 1.39, "currency": "EUR"}),
                    R("https://www.k-ruoka.fi/x", "Cheese", {"product": "Edam cheese", "price": 0.5, "currency": "EUR"})]
-        elif "oat drink" in q:  # real-world shapes: Finnish titles, euros+cents read as 179
+        elif "oat drink" in q:  # real-world shapes: Finnish titles, Exa's number read as 179 but the page says 1,79 €
+            ok = {"page_type": "product", "price_basis": "package", "request_match": "matches", "item_type_match": True}
             res = [R("https://www.k-ruoka.fi/kauppa/tuote/oatly", "Oatly kaurajuoma 1l | K-Ruoka",
-                     {"product": "Oatly kaurajuoma täyteläinen 1l", "price": 179, "currency": "EUR", "is_requested_item": True},
+                     dict(ok, product="Oatly kaurajuoma täyteläinen 1l", price=179, price_text="1,79 €", currency="EUR",
+                          match_evidence="Oatly kaurajuoma täyteläinen 1l"),
                      highlights=["Hinta 1,79 € kappale\n\n1 79 /kpl"]),
                    R("https://www.s-kaupat.fi/tuote/oatly", "Oatly Kaurajuoma 1L | S-kaupat",
-                     {"product": "Oatly Kaurajuoma 1L", "price": 1.94, "currency": "EUR", "is_requested_item": True},
+                     dict(ok, product="Oatly Kaurajuoma 1L", price=1.94, price_text="1,94 €", currency="EUR", match_evidence="Oatly Kaurajuoma 1L"),
                      highlights=["n. Noin 1,94 €"]),
                    R("https://www.lidl.fi/p/oatdrinkchoc", "Oat drink chocolate",
-                     {"product": "Oat drink chocolate", "price": 0.99, "currency": "EUR", "is_requested_item": False})]
-        elif "events in" in q:
+                     dict(ok, product="Oat drink chocolate", price=0.99, price_text="0,99 €", currency="EUR", request_match="mismatch"))]
+        elif " events " in q:
             res = [R("https://venue.example/jazz", "Jazz night", {"title": "Jazz Night at Storyville", "date_text": "Sat 21 Nov 21:00",
                      "start_date": "2099-11-21", "venue": "Storyville", "city": "Helsinki", "price_text": "€15", "category": "jazz"},
                      image="https://venue.example/img.jpg"),

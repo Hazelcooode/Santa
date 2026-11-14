@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:239:8000"
+    env_file:
+      - backend/.env
+    environment:
+      APP_ENV: development
+      DATA_MODE: live
+      SEED_DEMO_ACCOUNT: "0"
+      COOKIE_SECURE: "0"
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      TAIMI_DB: /data/taimi.sqlite3
+    volumes:
+      - taimi-data:/data
+    restart: unless-stopped
+volumes:
+  taimi-data:

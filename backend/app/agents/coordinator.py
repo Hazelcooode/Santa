@@ -5,9 +5,9 @@ text. Location comes from the user's profile (city + country), so the same code
 works for users anywhere; site_region / preferred_domains choose which local
 websites to search."""
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 
-from .. import db, llm, regions
+from .. import db, llm, regions, search_scope
 
 STOP = set("a an the and or for to in on at of with this that next my me i want find some any please near around from "
            "trip travel weekend winter summer spring autumn fall holiday holidays visit go going cheap".split())
@@ -16,7 +16,7 @@ INTENTS = ("groceries", "events", "travel", "products", "medicine", "wellbeing",
 
 
 def _month_year():
-    return datetime.utcnow().strftime("%B %Y")
+    return datetime.now(timezone.utc).strftime("%B %Y")
 
 
 def _interests(user):
@@ -45,6 +45,8 @@ def plan(user, intent, payload):
         return {"intent": intent, "missingFields": ["intent"], "queries": []}
     city = regions.city(user)
     cc = regions.country(user)
+    area = search_scope.area(user)
+    bias = search_scope.location_bias(user)
     spec = {
         "intent": intent, "location": ", ".join([x for x in (city, user.get("country")) if x]),
         "city": city, "country": cc, "currency": regions.currency(user), "queries": [],
@@ -57,26 +59,39 @@ def plan(user, intent, payload):
         if not items:
             spec["missingFields"].append("items")
         domains = regions.grocery_domains(user)
-        for it in items[:8]:  # budget: at most 8 priced lookups per run
-            name = _clean_item_name(it["name"])
-            spec["queries"].append({
+        lookup_items = [it for it in items if it.get("id") not in (payload.get("cachedItemIds") or [])]
+        for it in lookup_items[:8]:  # budget: at most 8 new lookups, saved quotes cover the rest
+            name = " ".join([it["name"], it.get("brand") or "", it.get("details") or "", " ".join(str(k)+"="+str(v) for k,v in (it.get("attributes") or {}).items())])[:350]
+            request_description=db.dumps({'item':it['name'],'brand':it.get('brand') or '', 'details':it.get('details') or '', 'attributes':it.get('attributes') or {}})
+            item_query = {
                 "key": it.get("id") or name, "kind": "prices", "schema": "price",
-                "query": "%s price %s grocery" % (name, city), "include_domains": domains,
-                "summary_query": "Current price of %s at this store" % name, "num_results": 6,
-                "refine_without_domains": bool(domains),
-            })
-        spec["overflowItems"] = [i.get("id") for i in items[8:]]
+                "query": "%s price %s grocery" % (name, area), "include_domains": domains,
+                "summary_query": "Every user attribute and detail is a hard constraint, without substitutions. Verify item_type_match for the ACTUAL product, not a seasoning/accessory for that product. Use the requested category as a product-type constraint and set category_match. Return attribute_checks for EVERY supplied key/value with exact_match and product-specific evidence binding that value to its attribute. Never infer a fat percentage from a protein percentage or replace a requested flavour. Quote evidence containing each exact attribute value. If unsupported omit the price. Inspect ONE product matching this full request: %s. Interpret translated product names. Extract current package price (not per kg), currency, exact product, variant and size. Return verbatim price_text and price_basis=package only for the full package price, never per kg/l. Do not convert cents yourself. Classify page_type; category/search pages are not product offers. Assess request_match against ALL requirements and quote match_evidence. Omit price if missing; do not substitute variants or invent facts." % request_description, "num_results": 6,
+                "requirements": dict(it, _strict=True),
+                "product_refinement": "%s %s %s %s specific product package price buy %s" % (it.get('brand') or '', ' '.join(str(v) for v in (it.get('attributes') or {}).values()), it.get('details') or '', it['name'], area),
+                "refine_without_domains": False, "forceRefresh": payload.get("forceRefresh", False), "currency": regions.currency(user),
+            }
+            for domain in domains or [None]:
+                spec["queries"].append(dict(item_query, include_domains=[domain] if domain else None))
+        spec["overflowItems"] = [i.get("id") for i in lookup_items[8:]]
 
     elif intent == "events":
         interests = payload.get("interests") or []
         topic = q or " ".join(interests[:2]) or "things to do"
-        base = "%s events in %s %s" % (topic, city, _month_year())
-        spec["queries"] += [
-            {"key": "events", "kind": "events", "schema": "event", "query": base, "num_results": 7,
-             "summary_query": "Event name, date, venue and ticket price",
-             "start_published_date": None},
-            {"key": "social", "kind": "social", "schema": None, "query": "%s %s recommendations" % (topic, city),
-             "include_domains": regions.SOCIAL[:3], "num_results": 5},
+        destination = payload.get('destination') or ('' if q else city)
+        destination_country = payload.get('destinationCountry') or ('' if q else cc)
+        spec['city'] = destination
+        spec['eventDestination'] = destination
+        event_bias = destination_country or None
+        spec['queries'] += [
+            {'key': 'events', 'kind': 'events', 'schema': 'event', 'num_results': 8,
+             'query': '%s events %s %s %s %s %s' % (topic, destination, destination_country, payload.get('dateFrom') or _month_year(), payload.get('dateTo') or '', ''),
+             'user_location': event_bias, 'forceRefresh': payload.get('forceRefresh',False),
+             'event_refinement': '%s %s %s official individual event detail tickets venue date %s' % (topic,destination,destination_country,payload.get('dateFrom') or _month_year()),
+             'summary_query': 'Return exactly ONE individual event per result at its own detail/booking page. Never return a roundup, directory or calendar as one event. Classify event_page_type and quote event_evidence. Extract one coherent name, venue, start/end dates, local times, price and description from that event only. For pages listing several unrelated events, mark event_listing and omit event facts instead of combining them. Find events matching this request: %s. Destination override: %s %s. Dates: %s to %s. Set location_match false for events in other destinations. Extract event dates/times, not article publication dates. Return end_date for date ranges and ongoing events, venue/city, explicit price text and real images if available. Never invent unknown schedules or ticket prices.' % (topic,destination,destination_country,payload.get('dateFrom') or 'upcoming',payload.get('dateTo') or 'unspecified')},
+            {'key': 'social', 'kind': 'social', 'schema': None,
+             'query': '%s %s %s recommendations' % (topic,destination,destination_country),
+             'include_domains': regions.SOCIAL[:3], 'num_results': 3, 'user_location': event_bias},
         ]
         spec["interests"] = interests
 
@@ -142,11 +157,15 @@ def plan(user, intent, payload):
 
     elif intent == "watch":
         spec["queries"].append({
-            "key": "watch", "kind": "watch", "schema": "product", "num_results": 6,
-            "query": "%s price buy" % q, "summary_query": "Exact product name, price, store",
+            "key": "watch", "kind": "watch", "schema": "product", "num_results": 10,
+            "query": "%s %s price buy %s" % (q, payload.get("details") or "", area),
+            "summary_query": "Inspect ONE product for request: %s. Requirements: %s. Extract current full-item price_text, price_basis, explicit currency, exact name, technical attributes, actual image_urls and availability with availability_evidence. Exclude out-of-stock, preorder and unverified availability. Classify page_type; category/search pages are not offers. Assess request_match against ALL criteria including product type. Interpret natural language, translated names, units (16gb = 16 GB) and model families (50xx means 5000–5099). Distinguish system RAM from GPU VRAM. Quote match_evidence supporting requirements. Unknown when unsupported; omit price when absent." % (q, payload.get('details') or 'none'),
+            "requirements": {"name": q, "details": payload.get('details') or ''}, "currency": regions.currency(user),
+            "forceRefresh": payload.get('forceRefresh', False),
+            "product_refinement": "%s %s specific product specifications price buy %s" % (q, payload.get('details') or '', area),
             "include_domains": payload.get("sites") or None,
         })
 
     for qq in spec["queries"]:
-        qq.setdefault("user_location", cc)
+        qq.setdefault("user_location", bias)
     return spec

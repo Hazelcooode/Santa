@@ -5,7 +5,9 @@ from pathlib import Path
 
 _tmp = tempfile.mkdtemp(prefix="taimi-test-")
 os.environ.update({"TAIMI_DB": os.path.join(_tmp, "test.sqlite3"), "EXA_MODE": "mock", "SCHEDULER": "0",
-                   "EXA_API_KEY": "", "ANTHROPIC_API_KEY": "", "LLM_ENABLED": "0", "CLOUDINARY_URL": ""})
+                   "EXA_API_KEY": "", "ANTHROPIC_API_KEY": "", "LLM_ENABLED": "0", "CLOUDINARY_URL": "",
+                   "DATA_MODE": "demo", "SEED_DEMO_ACCOUNT": "1", "APP_ENV": "development",
+                   "ALLOWED_HOSTS": "localhost,127.0.0.1,testserver", "AUTO_PRICE_LOOKUP": "0", "COOKIE_SECURE": "0"})
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pytest  # noqa: E402

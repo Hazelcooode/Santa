@@ -19,14 +19,16 @@ def _interests(user, given):
     return [r["text"] for r in rows]
 
 
-def explore(user, query, kind="events", interests=None):
+def explore(user, query, kind="events", interests=None, **location):
     if kind not in ("events", "travel"):
         raise ApiError(400, "INVALID_INPUT", "kind must be events or travel.")
     q = (query or "").strip()[:200]
     res = agents.run(user, "events" if kind == "events" else "travel",
-                     {"query": q or ("Lapland this winter" if kind == "travel" else ""), "interests": _interests(user, interests)})
+                     {"query": q or ("Lapland this winter" if kind == "travel" else ""), "interests": _interests(user, interests), "forceRefresh": True, **location})
     if res.get("status") == "clarifying":
         raise ApiError(422, "CLARIFICATION_NEEDED", "Where would you like to go?", details={"missingFields": res["missingFields"]})
+    from . import plans
+    res['searchId'] = plans.remember_search(user, q, kind, res)
     return res
 
 

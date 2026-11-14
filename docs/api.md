@@ -1,3 +1,5 @@
+> Implemented routes: consult the generated [API route index](api-route-index.md) and runtime /docs. The original planning contract below is not the definitive route list.
+
 # Proposed HTTP API
 
 Specification only; none of these endpoints exists in the static preview. Prefix `/api/v1`. JSON request/response, authenticated cookie or bearer session, ownership enforced server-side. Return UTC ISO-8601 timestamps and integer minor-unit amounts. MVP currency is EUR.

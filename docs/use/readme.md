@@ -1,3 +1,5 @@
+> Mode note: this is the standalone fixture walkthrough. For connected website/mobile and real inputs use [local testing](../local-testing.md) and [use cases](../use-cases.md).
+
 # Using Sola
 
 ## Launch the prototype

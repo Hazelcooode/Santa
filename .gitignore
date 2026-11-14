@@ -11,3 +11,7 @@ __pycache__/
 # downloaded on-device model + runtime (Apache-2.0), see backend/README.md
 backend/app/static/vendor/
 .DS_Store
+backend/data/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm

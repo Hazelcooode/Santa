@@ -10,6 +10,7 @@
 
     /* ---------------- State ---------------- */
     function load() {
+        if(window.FIGMENT_USE_BACKEND && window.TAIMI_ACCOUNT_STATE) return Object.assign(API.seed(),window.TAIMI_ACCOUNT_STATE);
         try {
             var raw = localStorage.getItem(KEY);
             if (raw) return Object.assign(API.seed(), JSON.parse(raw));
@@ -202,6 +203,9 @@
         window.scrollTo({ top: 0, behavior: (wasActive && !reduce) ? 'smooth' : 'auto' });
 
         (RENDER[name] || function () {})();
+        var notice=screen.querySelector('[data-screen-notice]');
+        if(!notice){notice=document.createElement('p');notice.dataset.screenNotice='true';notice.className='notice';screen.prepend(notice);}
+        notice.textContent=window.FIGMENT_USE_BACKEND && ['shopping','explore','products','chat'].indexOf(name)!==-1 ? 'Connected account: shopping/research/chat use the API. Check result mode and sources. External actions remain simulated.' : 'Prototype screen: sample data and local/simulated interactions. No real booking, message, medical-device reading or emergency response is performed.';
     }
     var stack = [location.hash || '#/home'];
     window.addEventListener('hashchange', function () {
@@ -327,14 +331,20 @@
     var PRIO_SHORT = { 1: 'Now', 2: 'Week', 3: 'Later' };
 
     function renderShopping() {
-        renderScan(); renderShopList(); renderPickPanel(); renderDealPanel(); renderDeals(); renderTrip();
+        renderScan();
+        if(window.FIGMENT_USE_BACKEND){
+            if(window.TaimiShopping)window.TaimiShopping.mount($('#shop-list'));
+            $('#deal-panel').style.display='none';$('#deal-results').style.display='none';
+        }else{renderShopList();renderDealPanel();renderDeals();}
+        renderTrip();
     }
+    window.addEventListener('taimi-shopping-updated',function(event){ S.shopping=event.detail; save(); var c=$('#list-count');if(c)c.textContent=S.shopping.filter(function(i){return !i.bought;}).length+' to buy'; });
 
     function renderScan(scanning) {
         var cams = S.devices.filter(function (d) { return d.id === 'fridge' || d.id === 'storage'; });
         var fromCam = S.shopping.filter(function (i) { return i.from === 'fridge' || i.from === 'storage'; });
         $('#scan-panel').innerHTML =
-            '<div class="panel-head"><div><div class="panel-title">Camera scan</div><div class="panel-sub">' + fromCam.length + ' items running low</div></div>' + localBadge() + '</div>' +
+            '<p class="tiny muted">Simulated camera frames. No real camera inference is connected.</p><div class="panel-head"><div><div class="panel-title">Camera scan</div><div class="panel-sub">' + fromCam.length + ' items running low</div></div>' + localBadge() + '</div>' +
             '<ul class="list">' + cams.map(function (c) {
                 var n = S.shopping.filter(function (i) { return i.from === c.id; }).length;
                 return '<li><span class="icon-btn">' + I.cam + '</span><div class="grow"><div class="item-title">' + esc(c.name) + '</div><div class="item-sub">Last scan ' + esc(c.last) + ' · ' + n + ' low</div></div>' +

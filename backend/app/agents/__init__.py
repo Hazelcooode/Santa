@@ -11,6 +11,8 @@ by POST /api/v1/tasks.
 import time
 
 from .. import db
+from ..config import settings
+from ..errors import ApiError
 from . import coordinator, planner, researcher
 
 
@@ -48,10 +50,19 @@ def run(user, intent, payload, task_id=None):
 
     t = time.time()
     bundle = researcher.research(user, spec)
+    if intent == "groceries" and payload.get("savedCandidates"):
+        bundle["candidates"].extend(payload["savedCandidates"])
+        bundle["available"] = True
+        bundle["sources"].extend({"title": c["title"], "url": c["url"]} for c in payload["savedCandidates"])
     trace.step("researcher", "ok" if bundle["available"] else "fallback",
                "%d sources, %d candidates%s" % (len(bundle["sources"]), len(bundle["candidates"]),
                                                 "" if bundle["available"] else " (demo data: %s)" % bundle["reason"]), t)
 
+    if not bundle["available"] and settings.data_mode == "live":
+        failure = next(iter(bundle.get("errors") or []), None)
+        if failure:
+            raise ApiError(502 if failure["code"] == "EXA_INVALID_REQUEST" else 503, failure["code"], failure["message"], retryable=failure["retryable"])
+        raise ApiError(503, "LIVE_RESEARCH_UNAVAILABLE", "Live research is unavailable. Check provider configuration, budget or retry later.", retryable=True, details={"reason": bundle["reason"]})
     t = time.time()
     result = planner.plan(user, spec, bundle)
     result.setdefault("mode", "live" if bundle["available"] else "demo")

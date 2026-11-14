@@ -44,7 +44,7 @@ def set_consent(user, scope, granted):
 def memories(user):
     rows = db.q("SELECT id,text,tag,source,created_at FROM memories WHERE user_id=? ORDER BY created_at DESC", (user["id"],))
     for r in rows:
-        r["date"] = db.parse_iso(r["created_at"]).strftime("%-d %b")
+        r["date"] = db.parse_iso(r["created_at"]).strftime("%d %b").lstrip("0")
     return rows
 
 

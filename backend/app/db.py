@@ -192,6 +192,20 @@ CREATE INDEX IF NOT EXISTS tasks_user ON tasks(user_id, created_at);
 """
 
 
+SCHEMA += """
+CREATE TABLE IF NOT EXISTS research_searches (
+ id TEXT PRIMARY KEY, user_id TEXT NOT NULL, query TEXT NOT NULL, kind TEXT NOT NULL,
+ payload TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS research_searches_user ON research_searches(user_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS saved_itineraries (
+ id TEXT PRIMARY KEY, user_id TEXT NOT NULL, payload TEXT NOT NULL,
+ created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS itineraries_user ON saved_itineraries(user_id,created_at DESC);
+"""
+
+
 def now():
     return datetime.now(timezone.utc)
 
@@ -244,6 +258,31 @@ def connect(path=None):
     with _init_lock:
         if path not in _initialised_paths:
             conn.executescript(SCHEMA)
+            # Additive, idempotent migration for existing local databases.
+            columns = {r[1] for r in conn.execute("PRAGMA table_info(shopping_items)")}
+            for column, definition in [("brand", "TEXT NOT NULL DEFAULT ''"), ("details", "TEXT NOT NULL DEFAULT ''"), ("attributes", "TEXT NOT NULL DEFAULT '{}'" )]:
+                if column not in columns:
+                    conn.execute("ALTER TABLE shopping_items ADD COLUMN " + column + " " + definition)
+            conn.executescript("""
+            CREATE TABLE IF NOT EXISTS shopping_quotes (
+              id TEXT PRIMARY KEY, user_id TEXT NOT NULL, item_id TEXT NOT NULL,
+              identity_hash TEXT NOT NULL, context_hash TEXT NOT NULL, refresh_id TEXT NOT NULL,
+              price_minor INTEGER NOT NULL CHECK(price_minor >= 0), currency TEXT NOT NULL,
+              store TEXT NOT NULL, url TEXT NOT NULL, product TEXT NOT NULL,
+              fetched_at TEXT NOT NULL, expires_at TEXT NOT NULL, evidence TEXT,
+              mode TEXT NOT NULL CHECK(mode IN ('live','demo')), cached INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE INDEX IF NOT EXISTS shopping_quotes_item ON shopping_quotes(user_id,item_id,fetched_at DESC);
+            CREATE TABLE IF NOT EXISTS shopping_refreshes (
+              id TEXT PRIMARY KEY, user_id TEXT NOT NULL, status TEXT NOT NULL,
+              started_at TEXT NOT NULL, finished_at TEXT, reason TEXT
+            );
+            """)
+            quote_columns={r[1] for r in conn.execute('PRAGMA table_info(shopping_quotes)')}
+            if 'image_url' not in quote_columns:
+                conn.execute('ALTER TABLE shopping_quotes ADD COLUMN image_url TEXT')
+            if 'price_basis' not in quote_columns:
+                conn.execute("ALTER TABLE shopping_quotes ADD COLUMN price_basis TEXT DEFAULT 'package'")
             _initialised_paths.add(path)
     _local.conn = conn
     _local.path = path
