@@ -31,9 +31,9 @@ def _clean_item_name(name):
 
 def extract_destination(query):
     if llm.available():
-        out = llm.complete("Extract the travel destination (city/region/country) from the request. Reply JSON "
-                           '{"destination": string|null, "nights": integer|null}.', [("user", query)], want_json=True,
-                           temperature=0)
+        out = llm.complete("Extract the travel destination (city, region or country) and the number of nights, "
+                           "if the request states them. Use null for anything not stated.", [("user", query)],
+                           schema=llm.obj({"destination": llm.nullable("string"), "nights": llm.nullable("integer")}))
         if isinstance(out, dict) and out.get("destination"):
             return out["destination"], out.get("nights")
     words = [w for w in re.findall(r"[\w'-]+", query or "") if w.lower() not in STOP and not w.isdigit()]

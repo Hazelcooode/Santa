@@ -80,8 +80,9 @@ def seed_user_data(uid):
 
 def seed_location_trail(user):
     from .services.calendar import at_local
+    day = 0 if at_local(user, 0, TRAIL[-1][0]) <= db.now() else -1   # a whole day: today if it's over, else yesterday
     for h, label, lat, lng in TRAIL:
-        at = at_local(user, 0, h)
+        at = at_local(user, day, h)
         if at <= db.now():
             db.run("INSERT INTO locations(id,user_id,at,lat,lng,accuracy_m,label) VALUES(?,?,?,?,?,?,?)",
                    (db.new_id("l_"), user["id"], db.iso(at), lat, lng, 10, label))

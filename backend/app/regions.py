@@ -3,6 +3,9 @@ preferred_domains / site_region in their profile (PATCH /api/v1/me/preferences).
 Unknown countries still work: Exa gets the user's country as user_location and
 the city in the query, with no domain restriction."""
 
+# Wholesale sites that sell only to businesses: their prices are not for the user.
+B2B_DOMAINS = {"kespro.com", "metro.de", "makro.nl", "tukkutori.fi"}
+
 GROCERY = {
     "FI": {"s-kaupat.fi": "S-Group (Prisma/Alepa/S-market)", "k-ruoka.fi": "K-Group (K-Citymarket/K-Market)", "lidl.fi": "Lidl", "foodie.fi": "Foodie"},
     "SE": {"ica.se": "ICA", "coop.se": "Coop", "willys.se": "Willys", "lidl.se": "Lidl"},

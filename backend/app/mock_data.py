@@ -11,11 +11,12 @@ def src(title, url):
 
 
 STORES = [
-    {"id": "prisma", "name": "Prisma Kalasatama", "mall": "REDI mall", "dist": 1.4, "url": "https://www.s-kaupat.fi/", "domain": "s-kaupat.fi"},
-    {"id": "kcm", "name": "K-Citymarket Itäkeskus", "mall": "Itis mall", "dist": 6.2, "url": "https://www.k-ruoka.fi/", "domain": "k-ruoka.fi"},
-    {"id": "lidl", "name": "Lidl Sörnäinen", "mall": None, "dist": 0.9, "url": "https://www.lidl.fi/", "domain": "lidl.fi"},
-    {"id": "alepa", "name": "Alepa Kallio", "mall": None, "dist": 0.3, "url": "https://www.s-kaupat.fi/", "domain": "s-kaupat.fi"},
-    {"id": "kmkt", "name": "K-Market Redi", "mall": "REDI mall", "dist": 1.4, "url": "https://www.k-ruoka.fi/", "domain": "k-ruoka.fi"},
+    {"id": "prisma", "name": "Prisma Kalasatama", "mall": "REDI mall", "dist": 1.4, "url": "https://www.s-kaupat.fi/", "domain": "s-kaupat.fi", "lat": 60.1873, "lng": 24.9776},
+    {"id": "kcm", "name": "K-Citymarket Itäkeskus", "mall": "Itis mall", "dist": 6.2, "url": "https://www.k-ruoka.fi/", "domain": "k-ruoka.fi", "lat": 60.2107, "lng": 25.0820},
+    {"id": "lidl", "name": "Lidl Sörnäinen", "mall": None, "dist": 0.9, "url": "https://www.lidl.fi/", "domain": "lidl.fi", "lat": 60.1866, "lng": 24.9628},
+    {"id": "alepa", "name": "Alepa Kallio", "mall": None, "dist": 0.3, "url": "https://www.s-kaupat.fi/", "domain": "s-kaupat.fi", "lat": 60.1838, "lng": 24.9504},
+    {"id": "kmkt", "name": "K-Market Redi", "mall": "REDI mall", "dist": 1.4, "url": "https://www.k-ruoka.fi/", "domain": "k-ruoka.fi", "lat": 60.1873, "lng": 24.9776},
+    {"id": "ksm-kamppi", "name": "K-Supermarket Kamppi", "mall": "Kamppi centre", "dist": 2.3, "url": "https://www.k-ruoka.fi/", "domain": "k-ruoka.fi", "lat": 60.1690, "lng": 24.9320},
 ]
 
 PRICE = {
@@ -29,7 +30,9 @@ PRICE = {
 }
 PRICE_BY_NAME = {"oat milk": "i1", "eggs": "i2", "rye bread": "i3", "coffee beans": "i4", "toilet paper": "i5",
                  "frozen blueberries": "i6", "dish soap": "i7"}
-STORE_FACTOR = {"prisma": 1.0, "kcm": 0.96, "lidl": 0.9, "alepa": 1.12, "kmkt": 1.03}
+for _p in PRICE.values():   # K-Supermarket Kamppi: K-Group prices, a touch over K-Market
+    _p["ksm-kamppi"] = round(_p["kmkt"] * 1.02, 2)
+STORE_FACTOR = {"prisma": 1.0, "kcm": 0.96, "lidl": 0.9, "alepa": 1.12, "kmkt": 1.03, "ksm-kamppi": 1.01}
 
 
 def demo_price(item, store_id):
@@ -180,7 +183,9 @@ BASKET_LABELS = {
     "dark_tshirt": ("Dark T-shirts", "darks", "T-shirts"), "jeans": ("Jeans", "darks", "Jeans / trousers"),
     "socks": ("Socks (pairs)", "darks", "Socks"), "underwear": ("Underwear", "whites", "Underwear"),
     "white_tshirt": ("White T-shirt", "whites", "T-shirts"), "towel": ("Towels", "whites", "Towels"),
-    "gym_wear": ("Gym wear", "sport", "Gym wear"),
+    "gym_wear": ("Gym wear", "sport", "Gym wear"), "colour_tshirt": ("Colour T-shirts", "colours", "T-shirts"),
+    "knitwear": ("Knitwear", "delicates", None), "joggers": ("Joggers", "darks", "Jeans / trousers"),
+    "unknown_item": ("Unrecognised item", "colours", None),
 }
 
 

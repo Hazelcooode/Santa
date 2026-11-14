@@ -5,6 +5,7 @@ unknown (never invented); every recommendation keeps the source URLs that back
 it. When the Researcher had no live data, the demo fixtures are used and the
 response is labelled mode="demo"."""
 import hashlib
+import math
 import re
 from datetime import date
 
@@ -29,8 +30,29 @@ def _tokens(s):
     return {w for w in re.findall(r"[a-zäöåü]+", (s or "").lower()) if len(w) > 2}
 
 
+def _price_forms(v):
+    return {("%.2f" % v), ("%.2f" % v).replace(".", ",")}
+
+
+def _fix_minor_units(s, highlights):
+    """Exa sometimes reads '1 79 /kpl' (euros and cents) as 179. If the page text
+    shows price/100 but not the extracted value, use price/100."""
+    p = _num(s.get("price"))
+    if not p or p < 100 or not highlights:
+        return s
+    text = " ".join(highlights)
+    if any(f in text for f in _price_forms(p / 100)) and not any(f in text for f in _price_forms(p)):
+        s = dict(s, price=round(p / 100, 2))
+    return s
+
+
 def _summary(c):
-    return c["summary"] if isinstance(c.get("summary"), dict) else {}
+    if not isinstance(c.get("summary"), dict):
+        return {}
+    if "_checked" not in c:
+        c["summary"] = _fix_minor_units(c["summary"], c.get("highlights"))
+        c["_checked"] = True
+    return c["summary"]
 
 
 def _num(v):
@@ -55,13 +77,51 @@ STRATEGY_NOTES = {
     "single": "Everything from one store.",
     "mall": "One trip: stores in the same mall or shopping centre.",
     "nearest": "Closest store. Costs a bit more but saves the walk.",
+    "route": "Stores along the route you usually take, so no detour.",
 }
+STRATEGIES = list(STRATEGY_NOTES)
+ROUTE_MAX_DETOUR_KM = 0.5   # "on the way" = at most a 500 m detour from your usual path
+
+
+def _km(a, b):
+    """Great-circle distance in km between (lat, lng) pairs."""
+    la1, lo1, la2, lo2 = map(math.radians, (a[0], a[1], b[0], b[1]))
+    h = math.sin((la2 - la1) / 2) ** 2 + math.cos(la1) * math.cos(la2) * math.sin((lo2 - lo1) / 2) ** 2
+    return 6371 * 2 * math.asin(min(1, math.sqrt(h)))
+
+
+def usual_route(user):
+    """The user's usual path from their location trail (with consent), else just home."""
+    from ..services import companion
+    pts = []
+    if companion.has_consent(user, "location_trail"):
+        last = db.q1("SELECT substr(at,1,10) AS d FROM locations WHERE user_id=? ORDER BY at DESC LIMIT 1", (user["id"],))
+        if last:
+            for r in db.q("SELECT lat, lng, label FROM locations WHERE user_id=? AND substr(at,1,10)=? ORDER BY at", (user["id"], last["d"])):
+                if not pts or pts[-1][2] != r["label"]:
+                    pts.append((r["lat"], r["lng"], r["label"] or "a stop"))
+    if not pts and user.get("lat") is not None:
+        pts = [(user["lat"], user["lng"], "Home")]
+    return pts
+
+
+def route_detours(route, stores):
+    """Extra km to visit each store from the nearest leg of the route (stores without coordinates are skipped)."""
+    out = {}
+    legs = list(zip(route, route[1:])) or [(route[0], route[0])] if route else []
+    for st in stores:
+        if st.get("lat") is None:
+            continue
+        s = (st["lat"], st["lng"])
+        out[st["id"]] = round(min(_km(a[:2], s) + _km(s, b[:2]) - _km(a[:2], b[:2]) for a, b in legs), 2)
+    return out
 
 
 def user_stores(user):
     stores = db.get_state(user["id"], "stores")
     if stores:
-        return stores
+        geo = {c["id"]: c for c in mock_data.STORES}
+        return [dict({k: geo[st["id"]][k] for k in ("lat", "lng") if st["id"] in geo and k in geo[st["id"]]}, **st) for st in stores]
     return [{"id": d, "name": regions.retailer_name(d), "mall": None, "dist": None, "url": "https://www.%s/" % d, "domain": d}
             for d in regions.grocery_domains(user)]
 
@@ -70,8 +130,9 @@ def _lines_total(lines):
     return round(sum(l["price"] * l["qty"] for l in lines), 2)
 
 
-def _choose(items, matrix, stores, strategy):
+def _choose(items, matrix, stores, strategy, ctx=None):
     """matrix[item_id][store_id] = price. Returns (lines, unpriced, note)."""
+    ctx = ctx or {}
     by_id = {s["id"]: s for s in stores}
     lines, unpriced, note = [], [], STRATEGY_NOTES.get(strategy, "")
 
@@ -117,6 +178,13 @@ def _choose(items, matrix, stores, strategy):
             allowed = malls.get(best_mall, set())
             if best_mall and not best_mall.startswith("solo:"):
                 note = "One trip to %s, mixing the stores inside." % best_mall
+        elif strategy == "route":
+            det = ctx.get("detours") or {}
+            allowed = {sid for sid, d in det.items() if d <= ROUTE_MAX_DETOUR_KM}
+            if not allowed and det:   # nothing right on the path: the smallest detour
+                allowed = {min(det, key=det.get)}
+            names = ", ".join("%s (+%d m)" % (by_id[sid]["name"], round(det[sid] * 1000)) for sid in sorted(allowed, key=det.get) if sid in by_id)
+            note = ("Along your usual route %s: %s." % (ctx.get("routeLabel"), names)) if names else "I don't know your usual route yet, so: stores near home."
         else:
             allowed = set(by_id)
         for it in items:
@@ -128,16 +196,18 @@ def _choose(items, matrix, stores, strategy):
     return lines, unpriced, note
 
 
-def _deals_payload(items, matrix, stores, strategy, sources, mode):
+def _deals_payload(items, matrix, stores, strategy, sources, mode, ctx=None):
     by_id = {s["id"]: s for s in stores}
-    lines, unpriced, note = _choose(items, matrix, stores, strategy)
+    lines, unpriced, note = _choose(items, matrix, stores, strategy, ctx)
     plan, order = [], []
     for l in lines:
         if l["store"] not in order:
             order.append(l["store"])
     for sid in order:
         ls = [l for l in lines if l["store"] == sid]
-        st = {k: v for k, v in by_id[sid].items() if k != "domain"}
+        st = {k: v for k, v in by_id[sid].items() if k not in ("domain", "lat", "lng")}
+        if ctx and sid in (ctx.get("detours") or {}):
+            st["detourKm"] = ctx["detours"][sid]
         plan.append({"store": st, "lines": ls, "total": _lines_total(ls)})
     total = _lines_total(lines)
     # Savings vs buying the same lines at the nearest store (when it has a price).
@@ -156,13 +226,40 @@ def _deals_payload(items, matrix, stores, strategy, sources, mode):
         "hasUnknownCosts": bool(unpriced), "excludedCosts": ["delivery", "travel"],
         "sources": sources, "mode": mode,
         "summary": "%d store(s), %d priced, %d unpriced" % (len(plan), len(lines), len(unpriced)),
+        "itemCount": len(items), "pricedCount": len(lines),
     }
 
 
-def demo_deals(items, strategy):
+def _all_modes(items, matrix, stores, strategy, sources, mode, ctx):
+    """One search, every mode. Totals are also given on the items every mode could price,
+    so modes are compared like for like (a mode that can't find an item has a smaller basket)."""
+    plans = {k: _deals_payload(items, matrix, stores, k, sources, mode, ctx) for k in STRATEGIES}
+    priced = {k: {l["item"]["id"]: l["price"] * l["qty"] for pl in p["plan"] for l in pl["lines"]} for k, p in plans.items()}
+    common = set.intersection(*[set(v) for v in priced.values()]) if priced else set()
+    modes = []
+    for k, p in plans.items():
+        p["comparableTotal"] = round(sum(v for i, v in priced[k].items() if i in common), 2)
+        modes.append({"id": k, "total": p["total"], "comparableTotal": p["comparableTotal"], "priced": p["pricedCount"],
+                      "missing": [u["name"] for u in p["unpriced"]], "stops": len(p["plan"])})
+    res = plans[strategy]
+    res["commonCount"] = len(common)
+    res["modes"] = modes
+    res["alternatives"] = {k: {kk: vv for kk, vv in p.items() if kk != "sources"} for k, p in plans.items() if k != strategy}
+    return res
+
+
+def _route_ctx(user, stores):
+    route = usual_route(user) if user else []
+    seen, labels = set(), []
+    for p in route:
+        labels.append(p[2])
+    return {"detours": route_detours(route, stores), "routeLabel": " → ".join(labels) if labels else "home"}
+
+
+def demo_deals(items, strategy, user=None):
     stores = mock_data.STORES
     matrix = {it["id"]: {s["id"]: mock_data.demo_price(it, s["id"]) for s in stores} for it in items}
-    res = _deals_payload(items, matrix, stores, strategy, [], "demo")
+    res = _all_modes(items, matrix, stores, strategy, [], "demo", _route_ctx(user, stores))
     res["sources"] = [{"title": p["store"]["name"] + " weekly prices", "url": p["store"]["url"]} for p in res["plan"]] + \
                      [{"title": "Price comparison feed", "url": "https://www.ruokahinta.fi/"}]
     return res
@@ -176,7 +273,7 @@ def plan_groceries(user, spec, bundle):
         it.setdefault("id", hashlib.sha1(it["name"].encode()).hexdigest()[:8])
     strategy = spec["payload"].get("strategy") or "multi"
     if not bundle["available"]:
-        return demo_deals(items, strategy)
+        return demo_deals(items, strategy, user)
 
     stores = list(user_stores(user))
     by_domain = {}
@@ -193,10 +290,15 @@ def plan_groceries(user, spec, bundle):
             cur = (s.get("currency") or "EUR").upper()
             if price is None or price > 150 or cur not in ("EUR", "€", regions.currency(user)):
                 continue
+            same = s.get("is_requested_item")
+            if same is False:
+                continue  # Exa says the page is about a different product
             title_tokens = _tokens(s.get("product") or c["title"])
-            if name_tokens and not (name_tokens & title_tokens):
-                continue  # page is about a different product
+            if same is not True and name_tokens and not (name_tokens & title_tokens):
+                continue  # no shared words and no cross-language confirmation
             dom = c["domain"]
+            if dom in regions.B2B_DOMAINS:
+                continue  # wholesale for businesses: not somewhere the user can shop
             targets = by_domain.get(dom)
             if not targets:
                 st = {"id": dom, "name": s.get("store") or regions.retailer_name(dom), "mall": None, "dist": None,
@@ -208,7 +310,7 @@ def plan_groceries(user, spec, bundle):
                 if prev is None or price < prev:
                     matrix[it["id"]][st["id"]] = round(price, 2)
             used_sources.append({"title": (s.get("product") or c["title"])[:90] + " · " + dom, "url": c["url"]})
-    res = _deals_payload(items, matrix, stores, strategy, sources_from(used_sources, 8) or sources_from(bundle["sources"]), "live")
+    res = _all_modes(items, matrix, stores, strategy, sources_from(used_sources, 8) or sources_from(bundle["sources"]), "live", _route_ctx(user, stores))
     if not matrix:
         res["note"] = "I couldn't find reliable online prices for these items right now. " + res["note"]
     return res

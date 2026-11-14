@@ -1,9 +1,10 @@
 """Life organiser, laundry, calendar, home/today and the state snapshot."""
-from typing import Any, Dict, List, Optional, Union
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from fastapi import APIRouter, Header
-from fastapi.responses import HTMLResponse
-from pydantic import BaseModel, Field
+from fastapi.responses import HTMLResponse, Response
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..auth import CurrentUser
 from ..errors import ApiError
@@ -31,6 +32,57 @@ class ItemPatch(BaseModel):
 class ObservationIn(BaseModel):
     detections: List[Dict[str, Any]] = Field(..., description="Derived on-device detections, e.g. {label:'oat_milk', level:0}")
     frameId: Optional[str] = None
+
+
+# --- basket camera summaries (formatted by the on-device model) ------------
+GarmentLabel = Literal["dark_tshirt", "white_tshirt", "colour_tshirt", "jeans", "socks", "underwear", "towel", "gym_wear",
+                       "knitwear", "joggers", "unknown_item"]
+
+
+class Strict(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class GarmentIn(Strict):
+    label: GarmentLabel
+    colour: Literal["white", "dark", "colour"]
+    confidence: float = Field(..., ge=0, le=1)
+    bbox: List[float] = Field(..., min_length=4, max_length=4, description="x, y, w, h as fractions of the frame")
+
+
+class DetectionCount(Strict):
+    label: GarmentLabel
+    n: int = Field(..., ge=0, le=60)
+
+
+class EdgeModelIn(Strict):
+    id: str = Field(..., pattern=r"^[a-z0-9-]{3,40}$")
+    version: str = Field(..., pattern=r"^[0-9a-z.\-]{1,16}$")
+    runtime: str = Field(..., max_length=40)
+    params: int = Field(..., ge=1, le=2_000_000_000)
+
+
+class FrameSummaryIn(Strict):
+    """What the camera hub may send: derived data only. There is no field that can carry pixels."""
+    frameId: str = Field(..., pattern=r"^[a-z0-9-]{4,48}$")
+    capturedAt: datetime
+    trigger: Literal["history", "new_item", "periodic"]
+    model: EdgeModelIn
+    imageSha256: str = Field(..., pattern=r"^[0-9a-f]{64}$")
+    imageWidth: int = Field(..., ge=16, le=4096)
+    imageHeight: int = Field(..., ge=16, le=4096)
+    processingMs: float = Field(..., ge=0, le=600_000)
+    items: List[GarmentIn] = Field(..., max_length=60)
+    detections: Optional[List[DetectionCount]] = Field(None, max_length=20, description="Counts per label (recomputed by the server)")
+
+
+class ObservationBatchIn(Strict):
+    reset: bool = False
+    observations: List[FrameSummaryIn] = Field(..., min_length=1, max_length=30)
+
+
+class FrameImageIn(Strict):
+    image: str = Field(..., max_length=900_000, description="data:image/jpeg;base64,... — only with consent")
 
 
 class DealsIn(BaseModel):
@@ -211,6 +263,31 @@ def book_trip(user=CurrentUser):
 @router.get("/laundry")
 def laundry_state(user=CurrentUser):
     return laundry.state(user)
+
+
+@router.post("/laundry/observations")
+def laundry_observations(body: ObservationBatchIn, user=CurrentUser):
+    """Summaries from the basket camera's on-device model. Images are never accepted here."""
+    obs = []
+    for o in body.observations:
+        d = o.model_dump()
+        at = d["capturedAt"]
+        d["capturedAt"] = at if at.tzinfo else at.replace(tzinfo=timezone.utc)
+        d["detections"] = [{"label": k, "n": v} for k, v in sorted(laundry.Counter(i["label"] for i in d["items"]).items())]
+        obs.append(d)
+    return laundry.ingest_observations(user, obs, reset=body.reset)
+
+
+@router.post("/laundry/frames/{frame_id}/image")
+def laundry_frame_upload(frame_id: str, body: FrameImageIn, user=CurrentUser):
+    """Only with the camera_images_off_device consent; the bytes must match the frame's fingerprint."""
+    return laundry.upload_image(user, frame_id, body.image)
+
+
+@router.get("/laundry/frames/{frame_id}/image")
+def laundry_frame_image(frame_id: str, user=CurrentUser):
+    mime, data = laundry.get_image(user, frame_id)
+    return Response(data, media_type=mime, headers={"Cache-Control": "private, no-store"})
 
 
 @router.post("/laundry/bookings", status_code=201)

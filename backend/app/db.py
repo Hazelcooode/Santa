@@ -168,6 +168,19 @@ CREATE TABLE IF NOT EXISTS price_observations (
   id TEXT PRIMARY KEY, user_id TEXT NOT NULL, watch_id TEXT NOT NULL, at TEXT NOT NULL,
   price_minor INTEGER, currency TEXT, title TEXT, url TEXT, store TEXT
 );
+CREATE TABLE IF NOT EXISTS laundry_observations (
+  id TEXT PRIMARY KEY, user_id TEXT NOT NULL, frame_id TEXT NOT NULL, captured_at TEXT NOT NULL, trigger TEXT NOT NULL,
+  summary TEXT NOT NULL, image_sha256 TEXT NOT NULL, received_at TEXT NOT NULL, UNIQUE(user_id, frame_id)
+);
+CREATE INDEX IF NOT EXISTS laundry_obs_user ON laundry_observations(user_id, captured_at);
+CREATE TABLE IF NOT EXISTS laundry_frame_images (
+  user_id TEXT NOT NULL, frame_id TEXT NOT NULL, mime TEXT NOT NULL, data BLOB NOT NULL, uploaded_at TEXT NOT NULL,
+  PRIMARY KEY(user_id, frame_id)
+);
+CREATE TABLE IF NOT EXISTS laundry_agent_reviews (
+  user_id TEXT NOT NULL, frame_id TEXT NOT NULL, items TEXT NOT NULL, by TEXT NOT NULL, created_at TEXT NOT NULL,
+  PRIMARY KEY(user_id, frame_id)
+);
 CREATE TABLE IF NOT EXISTS media_assets (
   id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL
 );

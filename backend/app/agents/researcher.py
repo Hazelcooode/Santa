@@ -17,6 +17,8 @@ SCHEMAS = {
             "currency": {"type": "string", "description": "ISO currency code, e.g. EUR"},
             "package_size": {"type": "string"},
             "store": {"type": "string", "description": "Retailer or store name"},
+            "is_requested_item": {"type": "boolean", "description": "true if this product is the item named in the request, "
+                                  "in any language or brand (e.g. Finnish 'kaurajuoma' is oat milk); false if it is a different product"},
         },
         "required": ["product", "price"],
     },

@@ -51,9 +51,11 @@ class Settings:
     exa_est_page_usd = _float("EXA_EST_PAGE_USD", 0.001)
     exa_timeout_s = _float("EXA_TIMEOUT_S", 25)
 
-    # --- Optional LLM for casual chat / vision (never used as a search source)
-    gemini_api_key = os.getenv("GEMINI_API_KEY", "")
-    gemini_model = os.getenv("MODEL_ID", "") or "gemini-2.0-flash"
+    # --- Agent language model (Claude; never used as a search source) -------
+    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    llm_model = os.getenv("LLM_MODEL", "") or "claude-haiku-5-5"
+    llm_enabled = os.getenv("LLM_ENABLED", "1") != "0"
+    llm_timeout_s = _float("LLM_TIMEOUT_S", 30)
 
     # --- Cloudinary (media side challenge) ---------------------------------
     cloudinary_url = os.getenv("CLOUDINARY_URL", "")

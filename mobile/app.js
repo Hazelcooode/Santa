@@ -25,7 +25,7 @@
 
     // in-memory UI state (not persisted)
     var UI = {
-        dealStrategy: 'multi', deals: null, dealsLoading: false,
+        dealStrategy: 'multi', deals: null, dealsAll: null, dealsLoading: false, dealSkip: {},
         tripEdit: false,
         laundrySel: null,
         exploreTab: 'events', exploreQuery: { events: 'this weekend in Helsinki', travel: 'Lapland this winter' },
@@ -327,7 +327,7 @@
     var PRIO_SHORT = { 1: 'Now', 2: 'Week', 3: 'Later' };
 
     function renderShopping() {
-        renderScan(); renderShopList(); renderDealPanel(); renderDeals(); renderTrip();
+        renderScan(); renderShopList(); renderPickPanel(); renderDealPanel(); renderDeals(); renderTrip();
     }
 
     function renderScan(scanning) {
@@ -354,7 +354,7 @@
                     S.shopping.push({ id: uid(), name: 'Butter 500 g', qty: 1, prio: 2, from: 'fridge', note: 'Spotted: last pack opened' });
                     added = true;
                 }
-                save(); UI.deals = null;
+                save(); dealsStale();
                 renderShopping();
                 toast(added ? 'Scan done: 1 new item (butter)' : 'Scan done: nothing new');
             }, 1500);
@@ -387,39 +387,85 @@
                 if (b.dataset.act === 'buy') it.bought = !it.bought;
                 if (b.dataset.act === 'prio') it.prio = it.prio % 3 + 1;
                 if (b.dataset.act === 'del') S.shopping = S.shopping.filter(function (x) { return x.id !== id; });
-                save(); UI.deals = null; renderShopList(); renderDeals();
+                save(); dealsStale(); renderShopList(); renderDeals();
             });
         });
         $('#add-item').addEventListener('submit', function (e) {
             e.preventDefault();
             var n = this.n.value.trim(); if (!n) return;
             S.shopping.push({ id: uid(), name: n, qty: 1, prio: +this.p.value, from: 'you', note: 'Added by you' });
-            save(); UI.deals = null; renderShopList(); renderDeals();
+            save(); dealsStale(); renderShopList(); renderDeals();
         });
     }
 
     var STRATS = [
         { id: 'multi', t: 'Cheapest overall', d: 'Best price per item, any store' },
         { id: 'single', t: 'One store', d: 'Cheapest single shop' },
-        { id: 'mall', t: 'One mall', d: 'Everything at REDI' },
-        { id: 'nearest', t: 'Closest', d: 'Least walking' }
+        { id: 'mall', t: 'One mall', d: 'Everything in one shopping centre' },
+        { id: 'nearest', t: 'Closest', d: 'Least walking' },
+        { id: 'route', t: 'On the way', d: 'Stores on the route you usually take, no detour' }
     ];
+
+    /* Which items are you buying? Picks from "Your list"; only these are priced (sent to Exa). */
+    function openItems() { return S.shopping.filter(function (i) { return !i.bought; }); }
+    function pickedItems() { return openItems().filter(function (i) { return !UI.dealSkip[i.id]; }); }
+    function dealsStale() { UI.deals = null; UI.dealsAll = null; }
+    function setPick(pred) {
+        UI.dealSkip = {};
+        openItems().forEach(function (i) { if (!pred(i)) UI.dealSkip[i.id] = true; });
+        dealsStale(); renderPickPanel(); renderDealPanel(); renderDeals();
+    }
+    function renderPickPanel() {
+        var el = $('#pick-panel'); if (!el) return;
+        var open = openItems(), picked = pickedItems();
+        var quick = [['all', 'Everything', function () { return true; }], ['urgent', 'Urgent only', function (i) { return i.prio === 1; }],
+                     ['week', 'Urgent + this week', function (i) { return i.prio <= 2; }], ['none', 'Clear', function () { return false; }]];
+        el.innerHTML =
+            '<div class="row between" style="margin-bottom:4px"><div class="panel-title">Which items are you buying?</div><span class="small bold muted">' + picked.length + ' / ' + open.length + '</span></div>' +
+            '<div class="panel-sub" style="margin-bottom:10px">Pick from your list. Only these get priced.</div>' +
+            '<div class="chips" style="margin-bottom:10px">' + quick.map(function (q) { return '<button class="chip" data-q="' + q[0] + '" type="button" style="font-size:.78rem">' + q[1] + '</button>'; }).join('') + '</div>' +
+            (open.length ? '<div class="chips">' + open.map(function (i) {
+                var on = !UI.dealSkip[i.id];
+                return '<button class="chip' + (on ? ' on' : '') + '" data-pick="' + i.id + '" type="button" aria-pressed="' + on + '">' + (on ? '✓ ' : '') + (i.qty > 1 ? i.qty + ' × ' : '') + esc(i.name) + '</button>';
+            }).join('') + '</div>' : '<p class="small muted">Your list is empty.</p>') +
+            (picked.length > 8 ? '<p class="tiny muted" style="margin-top:8px">I price up to 8 items per search; the rest stay on the list.</p>' : '');
+        quick.forEach(function (q) { $('[data-q="' + q[0] + '"]', el).addEventListener('click', function () { setPick(q[2]); }); });
+        $$('[data-pick]', el).forEach(function (b) {
+            b.addEventListener('click', function () {
+                if (UI.dealSkip[b.dataset.pick]) delete UI.dealSkip[b.dataset.pick]; else UI.dealSkip[b.dataset.pick] = true;
+                dealsStale(); renderPickPanel(); renderDealPanel(); renderDeals();
+            });
+        });
+    }
     function renderDealPanel() {
         $('#deal-panel').innerHTML =
             '<div class="panel-title" style="margin-bottom:4px">How should I shop?</div><div class="panel-sub" style="margin-bottom:12px">' + esc(STRATS.filter(function (s) { return s.id === UI.dealStrategy; })[0].d) + '</div>' +
             '<div class="chips">' + STRATS.map(function (s) { return '<button class="chip' + (s.id === UI.dealStrategy ? ' on' : '') + '" data-s="' + s.id + '" type="button">' + s.t + '</button>'; }).join('') + '</div>' +
             '<button class="pill block" id="find-deals" type="button" style="margin-top:14px">' + I.search + 'Search live prices</button>';
-        $$('#deal-panel [data-s]').forEach(function (c) { c.addEventListener('click', function () { UI.dealStrategy = c.dataset.s; UI.deals = null; renderDealPanel(); renderDeals(); }); });
+        $$('#deal-panel [data-s]').forEach(function (c) { c.addEventListener('click', function () { pickStrategy(c.dataset.s); }); });
         $('#find-deals').addEventListener('click', runDeals);
     }
+    // One search prices the picked items for every mode, so switching mode afterwards is instant.
+    function pickStrategy(id) {
+        UI.dealStrategy = id;
+        UI.deals = UI.dealsAll ? (UI.dealsAll[id] || null) : null;
+        renderDealPanel(); renderDeals();
+    }
     function runDeals() {
-        var items = S.shopping.filter(function (i) { return !i.bought; });
-        if (!items.length) { toast('Your list is empty 🎉'); return; }
+        var items = pickedItems();
+        if (!items.length) { toast(openItems().length ? 'Pick at least one item first' : 'Your list is empty 🎉'); return; }
         UI.dealsLoading = true; renderDeals();
-        API.findDeals(items, UI.dealStrategy).then(function (r) { UI.deals = r; }).catch(function () { toast('Couldn\'t reach price search'); })
+        API.findDeals(items, UI.dealStrategy).then(function (r) {
+            UI.deals = r;
+            if (r.alternatives) {   // the backend returns every mode's plan from the same search
+                UI.dealsAll = {}; UI.dealsAll[r.strategy] = r;
+                Object.keys(r.alternatives).forEach(function (k) { UI.dealsAll[k] = Object.assign({}, r.alternatives[k], { sources: r.sources, modes: r.modes, commonCount: r.commonCount }); });
+            }
+        }).catch(function () { toast('Couldn\'t reach price search'); })
             .then(function () { UI.dealsLoading = false; renderDeals(); });
     }
     function renderDeals() {
+        renderPickPanel();   // the list may have changed
         var el = $('#deal-results');
         if (UI.dealsLoading) { el.innerHTML = '<div class="panel light">' + loadingHtml('Searching 5 nearby stores with Exa…') + '<div class="skeleton" style="background-color:rgba(0,0,0,.05)"></div></div>'; return; }
         var r = UI.deals;
@@ -427,9 +473,10 @@
         el.innerHTML = '<div class="panel light">' +
             '<div class="row between"><div><div class="label-caps">Estimated total</div><div style="font-size:2rem;font-weight:800;letter-spacing:-.03em;line-height:1.1">' + euro(r.total) + '</div></div>' +
             (r.saved > 0.05 ? '<span class="badge green">Save ' + euro(r.saved) + '</span>' : '') + '</div>' +
-            '<p class="small" style="margin-top:6px">' + esc(r.note) + '</p>' +
+            (r.itemCount ? '<p class="small bold" style="margin-top:6px">' + (r.pricedCount === r.itemCount ? 'All ' + r.itemCount + ' items priced' : r.pricedCount + ' of ' + r.itemCount + ' items priced · not found here: ' + esc(r.unpriced.map(function (u) { return u.name; }).join(', '))) + '</p>' : '') +
+            '<p class="small" style="margin-top:6px">' + esc(r.note) + '</p>' + modesHtml(r) +
             r.plan.map(function (p) {
-                return '<hr class="divider"><div class="row between"><div><div class="item-title">' + esc(p.store.name) + '</div><div class="item-sub">' + p.store.dist + ' km' + (p.store.mall ? ' · ' + esc(p.store.mall) : '') + '</div></div><div class="bold">' + euro(p.total) + '</div></div>' +
+                return '<hr class="divider"><div class="row between"><div><div class="item-title">' + esc(p.store.name) + '</div><div class="item-sub">' + (p.store.dist == null ? 'Online shop' : p.store.dist + ' km') + (p.store.detourKm != null && r.strategy === 'route' ? ' · +' + Math.round(p.store.detourKm * 1000) + ' m detour' : '') + (p.store.mall ? ' · ' + esc(p.store.mall) : '') + '</div></div><div class="bold">' + euro(p.total) + '</div></div>' +
                     '<ul class="list" style="margin-top:8px">' + p.lines.map(function (l) {
                         return '<li style="padding:6px 0"><div class="grow small">' + (l.qty > 1 ? l.qty + ' × ' : '') + esc(l.item.name) + '</div><div class="small bold">' + euro(l.price * l.qty) + '</div></li>';
                     }).join('') + '</ul>';
@@ -439,6 +486,21 @@
             '</div>';
         $('#order-online').addEventListener('click', orderOnline);
         $('#print-list').addEventListener('click', printList);
+        $$('#deal-results [data-mode]').forEach(function (b) { b.addEventListener('click', function () { pickStrategy(b.dataset.mode); }); });
+    }
+    // Every mode on the same items (those every mode could price), so totals compare like for like.
+    function modesHtml(r) {
+        if (!r.modes || !r.modes.length) return '';
+        var label = {}; STRATS.forEach(function (s) { label[s.id] = s.t; });
+        var best = Math.min.apply(null, r.modes.map(function (m) { return m.comparableTotal; }));
+        return '<div style="margin-top:12px;border-radius:12px;background:rgba(0,0,0,.035);padding:10px 12px">' +
+            '<div class="label-caps" style="margin-bottom:6px">Same ' + r.commonCount + ' items, every way</div>' +
+            r.modes.map(function (m) {
+                var cur = m.id === r.strategy;
+                return '<button type="button" data-mode="' + m.id + '" style="display:flex;width:100%;justify-content:space-between;align-items:center;border:0;background:none;padding:5px 0;font:inherit;color:inherit;cursor:pointer;' + (cur ? 'font-weight:700' : '') + '">' +
+                    '<span class="small">' + (cur ? '● ' : '○ ') + esc(label[m.id] || m.id) + (m.stops > 1 ? ' <span class="muted">· ' + m.stops + ' stops</span>' : '') + (m.missing.length ? ' <span class="muted">· ' + m.missing.length + ' not found</span>' : '') + '</span>' +
+                    '<span class="small bold">' + euro(m.comparableTotal) + (m.comparableTotal === best ? ' ✓' : '') + '</span></button>';
+            }).join('') + '</div>';
     }
     function orderOnline() {
         var r = UI.deals;
@@ -454,9 +516,10 @@
                 $('[data-x]', root).addEventListener('click', closeSheet);
                 $('[data-ok]', root).addEventListener('click', function () {
                     closeSheet();
-                    S.shopping.forEach(function (i) { if (!i.bought) i.bought = 'ordered'; });
+                    var ordered = {}; r.plan.forEach(function (p) { p.lines.forEach(function (l) { ordered[l.item.id] = true; }); });
+                    S.shopping.forEach(function (i) { if (!i.bought && ordered[i.id]) i.bought = 'ordered'; });
                     markTaskByDeco('deco-red-ball');
-                    save(); UI.deals = null; renderShopping();
+                    save(); dealsStale(); renderShopping();
                     toast('Ordered! Delivery tomorrow 10–12 (demo)');
                 });
             });
@@ -529,24 +592,59 @@
     }
     var LOADS = {
         darks: { t: 'Darks', temp: '40 °C', prog: 'Mixed · 1 h 20' },
+        delicates: { t: 'Wool & delicates', temp: '30 °C', prog: 'Wool · 40 min' },
         whites: { t: 'Whites & towels', temp: '60 °C', prog: 'Cotton · 1 h 50' },
-        sport: { t: 'Gym wear', temp: '30 °C', prog: 'Synthetics · 50 min' }
+        sport: { t: 'Gym wear', temp: '30 °C', prog: 'Synthetics · 50 min' },
+        colours: { t: 'Colours', temp: '40 °C', prog: 'Mixed · 1 h' }
     };
+    function firstOut() {
+        var essentials = S.wardrobe.filter(function (w) { return w.perDay >= 1; });
+        essentials.sort(function (a, b) { return runway(a) - runway(b); });
+        return essentials.length ? essentials[0].cat : 'Clothes';
+    }
     var SLOT_TIMES = [8, 11, 14, 17, 20];
     // laundry-room state per [day][slot]: t = taken by a neighbour, b = you're busy, f = free for both
     var SLOT_MAP = [['t', 't', 'b', 'b', 'f'], ['f', 'b', 'b', 'f', 'f'], ['t', 'f', 'f', 'b', 'f']];
     var BEST = '1-0';
 
+    // With the Taimi backend: the basket camera's on-device models feed the basket,
+    // wardrobe and advice; the cards below show the plan and the photo evidence.
+    var TL = function () { return window.TaimiLaundryUI; };
+    function laundryState() { return TL() ? TL().state() : null; }
+    function applyLaundryState(st) {
+        S.basket = st.basket.map(function (b) { return { name: b.name, n: b.n, group: b.group }; });
+        S.wardrobe = st.wardrobe.map(function (w) { return { cat: w.cat, clean: w.clean, total: w.total, perDay: w.perDay }; });
+        var frames = (st.camera && st.camera.frames) || [], last = frames[frames.length - 1];
+        if (last) S.devices.forEach(function (d) { if (d.id === 'basket') d.last = new Date(last.capturedAt).toTimeString().slice(0, 5); });
+        // the room grid and the best slot come from the server, so the grid matches the advice
+        (st.slots || []).forEach(function (sl) {
+            if (SLOT_MAP[sl.day]) SLOT_MAP[sl.day][sl.slot] = sl.status === 'free' || sl.status === 'mine' ? 'f' : sl.status === 'busy' ? 'b' : 't';
+        });
+        if (st.best) BEST = st.best;
+        save();
+        if (current === 'laundry') renderLaundryPanels();
+        setAlert('laundry', minRunway() <= 2 ? '!' : '');
+    }
     function renderLaundry() {
-        var total = S.basket.reduce(function (a, b) { return a + b.n; }, 0), cap = 30;
+        renderLaundryPanels();
+        if (!TL()) return;
+        TL().mountProcess($('#laundry-process'));
+        TL().wire($('#basket-panel'));
+        TL().newPieceButton($('#laundry-next'), { top: $('#screen-laundry'), flash: ['#basket-panel', '#loads-panel', '#wardrobe-panel', '#slots-panel'] });
+        TL().start(applyLaundryState);
+    }
+    function renderLaundryPanels() {
+        var st = laundryState();
+        var total = S.basket.reduce(function (a, b) { return a + b.n; }, 0), cap = (st && st.capacity) || 30;
         var pct = Math.min(100, Math.round(total / cap * 100));
         $('#basket-panel').innerHTML =
             '<div class="panel-head"><div><div class="panel-title">Laundry basket</div><div class="panel-sub">Seen ' + esc(S.devices.filter(function (d) { return d.id === 'basket'; })[0].last) + ' · ' + total + ' items</div></div>' + localBadge() + '</div>' +
             '<div class="row between small bold" style="margin-bottom:6px"><span>' + pct + '% full</span><span>' + (pct > 75 ? 'Time to wash' : 'Plenty of room') + '</span></div>' +
             '<div class="meter"><i class="' + (pct > 75 ? 'bad' : pct > 50 ? 'warn' : '') + '" style="width:' + pct + '%"></i></div>' +
-            '<div class="chips" style="margin-top:14px">' + S.basket.map(function (b) { return '<span class="chip static">' + b.n + ' × ' + esc(b.name) + '</span>'; }).join('') + '</div>';
+            '<div class="chips" style="margin-top:14px">' + S.basket.map(function (b) { return '<span class="chip static">' + b.n + ' × ' + esc(b.name) + '</span>'; }).join('') + '</div>' +
+            (st ? TL().evidence(st) : '');
 
-        $('#wardrobe-panel').innerHTML = '<ul class="list">' + S.wardrobe.map(function (w) {
+        $('#wardrobe-panel').innerHTML = (st ? TL().runwayNote(st) : '') + '<ul class="list">' + S.wardrobe.map(function (w) {
             var r = runway(w), cls = r <= 1 ? 'bad' : r <= 3 ? 'warn' : '';
             return '<li style="display:block"><div class="row between"><div class="item-title">' + esc(w.cat) + '</div><div class="small bold" style="' + (r <= 1 ? 'color:var(--c-brand)' : '') + '">' + (w.clean === 0 ? 'Out now' : r >= 99 ? '—' : r + (r === 1 ? ' day' : ' days')) + '</div></div>' +
                 '<div class="row" style="margin-top:6px"><div class="meter grow"><i class="' + cls + '" style="width:' + Math.round(w.clean / w.total * 100) + '%"></i></div><span class="tiny bold muted" style="width:56px;text-align:right">' + w.clean + ' / ' + w.total + ' clean</span></div></li>';
@@ -556,12 +654,14 @@
         S.basket.forEach(function (b) { (groups[b.group] = groups[b.group] || []).push(b); });
         var mr = minRunway();
         $('#loads-panel').innerHTML =
-            '<div class="panel-head"><div><div class="panel-title">' + Object.keys(groups).length + ' loads before ' + dayShort(Math.max(0, mr)) + '</div><div class="panel-sub">Underwear runs out in ' + mr + ' days</div></div><span class="badge orange">Plan</span></div>' +
+            '<div class="panel-head"><div><div class="panel-title">' + Object.keys(groups).length + ' loads before ' + dayShort(Math.max(0, mr)) + '</div><div class="panel-sub">' + esc(firstOut()) + ' run out in ' + mr + (mr === 1 ? ' day' : ' days') + '</div></div><span class="badge orange">Plan</span></div>' +
             '<ul class="list">' + Object.keys(groups).map(function (g, i) {
-                var L = LOADS[g];
+                var L = LOADS[g] || { t: g, temp: '40 °C', prog: 'Mixed' };
                 return '<li><span class="icon-btn" style="font-weight:800">' + (i + 1) + '</span><div class="grow"><div class="item-title">' + L.t + ' · ' + L.temp + '</div><div class="item-sub">' +
                     esc(groups[g].map(function (b) { return b.n + ' ' + b.name.toLowerCase(); }).join(', ')) + ' · ' + L.prog + '</div></div></li>';
-            }).join('') + '</ul><p class="small muted" style="margin-top:10px">Tip: gym wear can go with darks at 40 °C if you only get one slot.</p>';
+            }).join('') + '</ul>' +
+            (st ? (st.headline ? '<p class="small" style="margin-top:12px;font-weight:600">' + esc(st.headline.text) + '</p>' : '') + TL().careNotes(st) + (st.tip ? '<p class="small muted" style="margin-top:10px">Tip: ' + esc(st.tip) + '</p>' : '')
+                : '<p class="small muted" style="margin-top:10px">Tip: gym wear can go with darks at 40 °C if you only get one slot.</p>');
 
         renderSlots();
     }
@@ -582,6 +682,7 @@
         var sel = UI.laundrySel ? UI.laundrySel.split('-') : null;
         $('#slots-panel').innerHTML =
             '<div class="panel-sub" style="margin-bottom:12px">Shared laundry room, building B · 3 h slots, 2 machines</div>' +
+            (laundryState() ? '<div style="margin:-6px 0 12px">' + TL().slotNote(laundryState()) + '</div>' : '') +
             '<div class="slot-grid">' + head + body + '</div>' +
             '<div class="legend"><span><i style="background:var(--c-card-green)"></i>Both free</span><span><i style="background:rgba(0,0,0,.1)"></i>Your calendar busy</span><span><i style="background:repeating-linear-gradient(45deg,rgba(0,0,0,.15) 0 3px,transparent 3px 6px)"></i>Taken</span></div>' +
             (S.laundryBookings.length ? '<hr class="divider"><div class="label-caps" style="margin-bottom:6px">Your bookings</div><ul class="list">' + S.laundryBookings.map(function (b) {
@@ -972,7 +1073,7 @@
                     var n = m.title.split(/,| & | with /)[0].trim();
                     if (!S.shopping.some(function (i) { return i.name === n; })) S.shopping.push({ id: uid(), name: n, qty: 1, prio: 2, from: 'health', note: 'For: ' + m.title });
                 });
-                save(); UI.deals = null; this.innerHTML = I.check + 'Added to shopping list'; this.disabled = true;
+                save(); dealsStale(); this.innerHTML = I.check + 'Added to shopping list'; this.disabled = true;
             });
         }
     }

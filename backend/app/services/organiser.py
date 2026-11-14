@@ -139,8 +139,8 @@ def regulars(user):
 
 # --------------------------------------------------------------------- deals
 def find_deals(user, strategy="multi", items=None):
-    if strategy not in ("multi", "single", "mall", "nearest"):
-        raise ApiError(400, "INVALID_INPUT", "strategy must be multi, single, mall or nearest.")
+    if strategy not in ("multi", "single", "mall", "nearest", "route"):
+        raise ApiError(400, "INVALID_INPUT", "strategy must be multi, single, mall, nearest or route.")
     if items is None:
         items = list_items(user, include_bought=False)
     items = [{"id": str(i.get("id") or ""), "name": str(i.get("name") or "")[:80], "qty": i.get("qty") or 1, "prio": i.get("prio", 2)}

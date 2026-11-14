@@ -25,6 +25,15 @@ class FakeExa:
             res = [R("https://www.s-kaupat.fi/tuote/oat", "Oat drink 1L", {"product": "Oat milk drink 1 l", "price": 1.65, "currency": "EUR"}),
                    R("https://www.lidl.fi/p/oat", "Oat drink", {"product": "Oat milk 1 L", "price": 1.39, "currency": "EUR"}),
                    R("https://www.k-ruoka.fi/x", "Cheese", {"product": "Edam cheese", "price": 0.5, "currency": "EUR"})]
+        elif "oat drink" in q:  # real-world shapes: Finnish titles, euros+cents read as 179
+            res = [R("https://www.k-ruoka.fi/kauppa/tuote/oatly", "Oatly kaurajuoma 1l | K-Ruoka",
+                     {"product": "Oatly kaurajuoma täyteläinen 1l", "price": 179, "currency": "EUR", "is_requested_item": True},
+                     highlights=["Hinta 1,79 € kappale\n\n1 79 /kpl"]),
+                   R("https://www.s-kaupat.fi/tuote/oatly", "Oatly Kaurajuoma 1L | S-kaupat",
+                     {"product": "Oatly Kaurajuoma 1L", "price": 1.94, "currency": "EUR", "is_requested_item": True},
+                     highlights=["n. Noin 1,94 €"]),
+                   R("https://www.lidl.fi/p/oatdrinkchoc", "Oat drink chocolate",
+                     {"product": "Oat drink chocolate", "price": 0.99, "currency": "EUR", "is_requested_item": False})]
         elif "events in" in q:
             res = [R("https://venue.example/jazz", "Jazz night", {"title": "Jazz Night at Storyville", "date_text": "Sat 21 Nov 21:00",
                      "start_date": "2099-11-21", "venue": "Storyville", "city": "Helsinki", "price_text": "€15", "category": "jazz"},
@@ -94,3 +103,11 @@ def test_live_products_and_region(client, live):
     assert r["results"][0]["title"] == "Trail Boot" and r["results"][0]["price"] == 120
     q, kw = [c for c in live.calls if "buy" in c[0].lower()][-1]
     assert kw.get("user_location") == "FI"
+
+
+def test_live_deals_cross_language_and_minor_units(client, live):
+    r = client.post("/api/deals", json={"items": [{"id": "o1", "name": "Oat drink 1 L", "qty": 1}], "strategy": "multi"}).json()
+    assert r["mode"] == "live"
+    lines = [l for p in r["plan"] for l in p["lines"]]
+    assert len(lines) == 1 and lines[0]["price"] == 1.79  # 179 corrected from page text; chocolate drink rejected
+    assert r["total"] == 1.79 and not r["unpriced"]

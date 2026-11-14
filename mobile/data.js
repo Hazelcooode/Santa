@@ -188,6 +188,10 @@
                 return { item: it, qty: it.qty, store: best.s, price: best.p };
             });
             note = 'One trip to REDI mall (Kalasatama metro). Mixes Prisma and K-Market inside.';
+        } else if (strategy === 'route') {
+            // stores on the usual Home → University → Café Regatta → Home path: only Alepa Kallio in this mock
+            lines = items.map(function (it) { return { item: it, qty: it.qty, store: 'alepa', price: priceFor(it, 'alepa') }; });
+            note = 'Along your usual route Home → University → Café Regatta → Home: Alepa Kallio (+100 m).';
         } else { // nearest
             lines = items.map(function (it) { return { item: it, qty: it.qty, store: 'alepa', price: priceFor(it, 'alepa') }; });
             note = 'Closest store (300 m). Costs a bit more but the round trip is 6 minutes.';

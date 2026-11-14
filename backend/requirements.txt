@@ -6,3 +6,4 @@ cloudinary==1.47.0
 python-dotenv==1.2.1
 pydantic==2.13.5
 pytest==8.4.2
+anthropic>=2.8,<3; python_version >= "3.10"  # Python 3.9 hosts run without the model (rule-based fallbacks)

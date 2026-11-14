@@ -49,9 +49,11 @@ def _attr_map(user, ids):
 
 def extract_keys(query):
     if llm.available():
-        out = llm.complete("Extract what the shopper wants. Reply JSON {\"productType\": string, \"keys\": [short lowercase features], "
-                           "\"maxPrice\": number|null}. Features are 1-2 words (e.g. waterproof, black, lined).",
-                           [("user", query)], want_json=True, temperature=0)
+        out = llm.complete("Extract what the shopper wants: the product type, up to 8 short lowercase features of 1-2 words "
+                           "each (e.g. waterproof, black, lined), and the maximum price if one is stated (else null).",
+                           [("user", query)],
+                           schema=llm.obj({"productType": {"type": "string"}, "keys": {"type": "array", "items": {"type": "string"}},
+                                           "maxPrice": llm.nullable("number")}))
         if isinstance(out, dict) and isinstance(out.get("keys"), list):
             keys = [str(k).lower()[:24] for k in out["keys"]][:8]
             if out.get("maxPrice"):
@@ -69,8 +71,9 @@ def image_features(user, image):
         return [str(x).lower()[:24] for x in image][:6]
     if isinstance(image, str) and image.startswith("data:image"):
         if llm.available():
-            out = llm.complete("List up to 5 short visual product features (colour, material, style) as JSON {\"features\": [..]}.",
-                               [("user", "What features does this product have?")], want_json=True, image_data_url=image, temperature=0)
+            out = llm.complete("List up to 5 short visual product features (colour, material, style), 1-2 words each.",
+                               [("user", "What features does this product have?")], image_data_url=image,
+                               schema=llm.obj({"features": {"type": "array", "items": {"type": "string"}}}))
             if isinstance(out, dict) and out.get("features"):
                 return [str(x).lower()[:24] for x in out["features"]][:5]
         color = media.dominant_color(user, image)

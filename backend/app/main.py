@@ -52,6 +52,8 @@ async def guard(request: Request, call_next):
         if origin and origin.split("://", 1)[-1] != host and origin not in settings.cors_origins:
             return errors.JSONResponse({"error": {"code": "FORBIDDEN", "message": "Cross-site request blocked.", "retryable": False}}, status_code=403)
     resp = await call_next(request)
+    if request.url.path.startswith(("/src/", "/mobile/")):
+        resp.headers.setdefault("Cache-Control", "no-cache")  # always revalidate frontend files
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     resp.headers.setdefault("Referrer-Policy", "same-origin")
     return resp
@@ -86,7 +88,7 @@ def _inject(path, before_tag, snippet):
 def website(request: Request):
     if not _gate(request):
         return RedirectResponse("/login?next=/", status_code=303)
-    return HTMLResponse(_inject(REPO_DIR / "index.html", "</body>", '<script src="/taimi-bridge.js" defer></script>'))
+    return HTMLResponse(_inject(REPO_DIR / "index.html", "</body>", '<script src="/taimi-bridge.js" defer></script>' + EDGE_SCRIPTS))
 
 
 @app.get("/mobile", include_in_schema=False)
@@ -99,14 +101,34 @@ def mobile(request: Request):
     if not _gate(request):
         return RedirectResponse("/login?next=/mobile/", status_code=303)
     html = _inject(MOBILE / "index.html", '<script src="data.js"></script>', "<script>window.FIGMENT_USE_BACKEND=true;</script>")
-    html = html.replace('<script src="app.js"></script>', '<script src="/taimi-bridge.js"></script><script src="app.js"></script>', 1)
+    html = html.replace('<script src="app.js"></script>', '<script src="/taimi-bridge.js"></script>' + EDGE_SCRIPTS + '<script src="app.js"></script>', 1)
     return HTMLResponse(html, headers={"Cache-Control": "no-store"})
 
 
-@app.get("/taimi-bridge.js", include_in_schema=False)
-def bridge():
-    return FileResponse(STATIC / "taimi-bridge.js", media_type="application/javascript")
+EDGE_SCRIPTS = '<script src="/taimi-edge.js"></script><script src="/taimi-laundry-ui.js"></script>'
+PUBLIC_STATIC = {"taimi-bridge.js": "application/javascript", "taimi-edge.js": "application/javascript",
+                 "taimi-laundry-ui.js": "application/javascript"}
 
 
+@app.get("/{name}", include_in_schema=False)
+def static_file(name: str):
+    """Bridge, on-device camera/model scripts and the model weights (no user data)."""
+    if name not in PUBLIC_STATIC:
+        raise errors.ApiError(404, "NOT_FOUND", "Not found.")
+    return FileResponse(STATIC / name, media_type=PUBLIC_STATIC[name], headers={"Cache-Control": "no-cache"})
+
+
+class _NoCacheFiles(StaticFiles):
+    def file_response(self, *a, **kw):
+        resp = super().file_response(*a, **kw)
+        resp.headers.setdefault("Cache-Control", "no-cache")
+        return resp
+
+
+# Camera frames the simulated basket hub "captures" (served to the device, never posted back)
+app.mount("/laundry-frames", _NoCacheFiles(directory=str(STATIC / "laundry-frames")), name="laundry-frames")
+# On-device detector: transformers.js + ONNX Runtime + OWL-ViT weights, downloaded once (git-ignored).
+(STATIC / "vendor").mkdir(exist_ok=True)
+app.mount("/vendor", StaticFiles(directory=str(STATIC / "vendor")), name="vendor")
 app.mount("/src", StaticFiles(directory=str(WEB_SRC)), name="web-src")
 app.mount("/mobile", StaticFiles(directory=str(MOBILE)), name="mobile")

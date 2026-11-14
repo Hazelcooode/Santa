@@ -9,7 +9,9 @@ cd backend && ../.venv/bin/python -m pytest -q
 
 **Test account:** `test@taimi.app` / `taimi-demo-2026` (change with `TEST_ACCOUNT_EMAIL` / `TEST_ACCOUNT_PASSWORD`). It is seeded with the same fictional data as the mobile prototype.
 
-Configuration lives in `backend/.env` (copy `.env.example`). **Without `EXA_API_KEY` every research endpoint still works with the prototype's demo data, and responses say `"mode": "demo"`.** With a key they return live, sourced results (`"mode": "live"`). `CLOUDINARY_URL` enables the media endpoints. `GEMINI_API_KEY` is optional: it improves chat wording and request parsing and is never used as a search source.
+Configuration lives in `backend/.env` (copy `.env.example`). **Without `EXA_API_KEY` every research endpoint still works with the prototype's demo data, and responses say `"mode": "demo"`.** With a key they return live, sourced results (`"mode": "live"`). `CLOUDINARY_URL` enables the media endpoints.
+
+**Agent model: `claude-haiku-5-5`** (Anthropic Python SDK, `app/llm.py`; change with `LLM_MODEL`). It parses requests (travel destination, product features), words the laundry headline and reads consented product photos, using structured outputs (`output_config.format` JSON schemas) at `effort: low`. It also **is the chat**: every `/api/chat` message goes to a Claude tool-use agent (`companion._reply`, loop in `llm.run_agent`). Its tools are fixed: `exa_search` (its only search tool; no Anthropic server-side tools such as `web_search` are enabled, enforced by an assert and a test), `read_my_data` (sleep, recent groceries, shopping list), `save_memory` (only when memory consent is on) and `offer_reach_out` (shows a prompt; sending still needs `chat/reach-out` with `confirmed: true`). Search results are numbered, cited as [n] and returned as `sources`. Crisis messages always get the care prompt and the national helpline from server code, with or without the model; without a model the chat says it is offline. The model itself is never a search source. Credentials: `ANTHROPIC_API_KEY` in `backend/.env`, or an `ant auth login` profile. Without credentials (or with `LLM_ENABLED=0`) every caller uses its rule-based fallback. Refusals, truncation and API errors also fall back; auth errors pause the model for 5 minutes. The SDK needs Python ≥ 3.10; on 3.9 the backend runs without it.
 
 ## Frontend compatibility
 
@@ -27,11 +29,11 @@ Configuration lives in `backend/.env` (copy `.env.example`). **Without `EXA_API_
 | Cheapest deal: any stores / one store / one mall / closest | `/api/deals`, `shopping/deals` (`strategy` = `multi`, `single`, `mall`, `nearest`), `shopping/stores` |
 | Order online or print | `shopping/orders` (approval + `Idempotency-Key`, simulated checkout), `shopping/proposals/{id}/print` |
 | Grocery run in a free calendar slot, editable | `shopping/trip` (GET/PUT), `shopping/trip/book`, `calendar/events`, `calendar/free-slots` |
-| Laundry basket camera → wardrobe runway → loads → reservation | `laundry`, `devices/basket/scan`, `laundry/bookings`, `laundry/wardrobe` |
-| Casual chat, consented memories | `/api/chat`, `chat`, `chat/history`, `memories` |
+| Laundry basket camera → wardrobe runway → loads → reservation | `laundry`, `laundry/observations` (on-device summaries only), `laundry/frames/{id}/image` (consent + fingerprint), `laundry/bookings`, `laundry/wardrobe` |
+| Casual chat (Claude agent, Exa as its only search tool), consented memories | `/api/chat`, `chat`, `chat/history`, `memories` |
 | Background interest research shared from the agent's social account | `companion/posts`, `companion/posts/refresh` (scheduler: at most every 12 h), `social` |
 | Call / video chat the agent | `calls` |
-| Mental health: ask before reaching out, never encourage harm | crisis/distress detection in chat → care prompt + support lines. `chat/reach-out` requires `confirmed: true` |
+| Mental health: ask before reaching out, never encourage harm | crisis wording in chat → care prompt + support lines from server code (not the model); the agent offers a reach-out when someone seems low. `chat/reach-out` requires `confirmed: true` |
 | Events and travel with sources, images, social posts | `/api/explore`, `explore` (each result has `sources`, `images`, `posts`) |
 | Product search with key features + feedback iteration + photo | `/api/products`, `products/search` (liked/disliked ids → attribute weights. `imageFeatures` from on-device analysis, or a data-URL photo → Cloudinary colour / optional vision) |
 | Regular check-in with authentication, escalation with location trail | `auth/challenge`, `safety/checkin` (fingerprint / Face ID challenge or password), `safety/checkin/missed-preview`, `safety/checkin/evaluate` (the scheduler runs this every minute), `safety/locations` |
@@ -58,9 +60,38 @@ Three agents, as in `docs/exa-agents.md` (`app/agents/`):
 
 Budget guards (`app/exa_client.py`): a shared SQLite cache with a TTL per kind (prices 6 h, events 12 h, evergreen advice 7 d), coalescing of identical in-flight requests, hard caps `EXA_TOTAL_BUDGET_USD=40`, `EXA_DAILY_BUDGET_USD=4` and `EXA_USER_DAILY_REQUESTS=60`, and a ledger of Exa's reported `costDollars` per call. When a cap is reached the API falls back to labelled demo data instead of failing. `EXA_MODE=cache_only` serves only what is already cached, which is useful while judges click around. Background jobs (interest posts, price watches) run only for recently active users, at most every 12 h or at each watch's cadence.
 
+## Laundry: basket camera, on-device models, and the agent's second look
+
+`app/static/taimi-edge.js` plays the camera hub at home, and runs on the user's machine (in the demo, in the browser tab):
+
+1. **Camera.** Real photos of one basket (`app/static/laundry-frames/`, supplied by the project owner, cropped to 720×720): empty (the calibration shot), a white T-shirt, navy joggers on top, a grey towel, and, for "If a new piece comes in…", a beige cardigan over jeans. Garments overlap in every photo.
+2. **Two small open vision models, run locally** with ONNX Runtime (WebAssembly) through transformers.js 3.8.1. Weights load only from this server (`allowRemoteModels = false`):
+   * **OWL-ViT B/32** (`Xenova/owlvit-base-patch32`, q8, Apache-2.0) finds garment regions, overlapping ones included.
+   * **CLIP B/32** (`Xenova/clip-vit-base-patch32`, q8, MIT) names each region (T-shirt, cardigan/knitwear, towel, joggers, jeans, socks, underwear). It averages six crops per region and a prompt ensemble.
+   * A pixel rule gives the colour family (white/dark/colour).
+
+   It takes about 3–9 s per photo on an M4. On these photos it gets the white T-shirt, the towel, the cardigan and the jeans peeking out under it. It also makes mistakes: navy joggers come out as "jeans", the cardigan's lower half as "underwear", and the whole pile as "joggers". So the router below exists.
+3. **Summary.** `POST /api/v1/laundry/observations` accepts only labels, colours, confidence, boxes, counts, timing, the model id and the image's SHA-256. The schema forbids extra fields, so pixels can't be attached. The server works out the basket (same `{name, n, group}` format as before), what changed, and the wardrobe (a garment newly in the basket means one fewer clean). Garments get buried, so one counts until the basket is seen empty again.
+
+Run `scripts/fetch_edge_models.sh` once to download the runtime and weights (about 330 MB) into the git-ignored `app/static/vendor/`.
+
+**Router: confidence is never shown to the user.** If any garment in a frame is below 0.8 (`ROUTE_CONFIDENCE`):
+* **Photos allowed** (`camera_images_off_device` consent): the hub uploads the photo. The server stores it only if its SHA-256 matches the reported fingerprint, then gives it to Taimi's agent (`claude-haiku-5-5`, image + the device's guess, structured output). The agent's garment list replaces the device's for that frame.
+* **Photos not allowed:** the device's result stands. The user sees no photos and no agent results, only a "some pieces are hard to tell apart" note offering the second look.
+
+Without `ANTHROPIC_API_KEY` the agent is unavailable and the on-device result is used. Withdrawing consent deletes the photos and the agent's results, and the plan goes back to the on-device result.
+
+**UI** (shared module `app/static/taimi-laundry-ui.js`), in the same card order on the app and the website:
+* **Laundry basket:** fullness, the item list, and the evidence. The evidence is photos only, with a box and a short tag on each recognised garment; new pieces are orange and agent boxes are dashed. Tapping a photo opens it full size.
+* **Wash plan:** loads, the headline, and care notes.
+* **Wardrobe runway:** with what runs out first.
+* **Book the laundry room:** with the best slot.
+
+"If a new piece comes in…" sits at the bottom. It scrolls to the top and shows the agent's live steps (photo, find, name, summary, router, plan), folds them when done, and refreshes the cards.
+
 ## What is simulated
 
-There are no real payment, delivery, laundry-room, Uber, calendar-provider or SMS/WhatsApp integrations. Those actions return `simulated: true`, and messages land in `/api/v1/outbox` with status `simulated`. Camera and video analysis is designed to run on the device: the backend only receives derived detections, and the demo replays mocked frames. Biometric check-ins accept the one-time server challenge the device signed. Production must verify a WebAuthn assertion.
+There are no real payment, delivery, laundry-room, Uber, calendar-provider or SMS/WhatsApp integrations. Those actions return `simulated: true`, and messages land in `/api/v1/outbox` with status `simulated`. Camera and video analysis runs on the device: the backend only receives derived detections. Laundry uses five real photos and real on-device models; the fridge, storage and door cameras replay mocked detections. Biometric check-ins accept the one-time server challenge the device signed. Production must verify a WebAuthn assertion.
 
 ## Layout
 
@@ -70,6 +101,9 @@ app/agents/         coordinator, researcher (Exa schemas), planner
 app/services/       organiser, laundry, calendar, companion, treats, health, safety, media, tasks, watches, proposals, messaging, home
 app/routers/        compat (/api/*), account, organiser, care, research (/api/v1/*)
 app/exa_client.py   budgeted cached Exa gateway     app/regions.py  per-country sites
+app/llm.py          Claude (claude-haiku-5-5) via the Anthropic SDK, with fallbacks
+app/static/         bridge, on-device camera + models (taimi-edge.js), laundry UI, laundry-frames/, vendor/ (downloaded)
+scripts/            fetch_edge_models.sh (on-device model weights + runtime)
 app/db.py           SQLite schema (data/taimi.sqlite3)
 tests/              API + live-path tests (fake Exa)
 ```

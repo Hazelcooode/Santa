@@ -9,11 +9,12 @@ from .. import auth, db, exa_client, regions
 from ..auth import CurrentUser
 from ..config import settings
 from ..errors import ApiError
-from ..services import companion
+from ..services import companion, laundry
 
 router = APIRouter(tags=["account"])
 
-CONSENT_SCOPES = ("memory", "location_trail", "camera_derived_inventory", "health_device", "social_sharing", "calendar")
+CONSENT_SCOPES = ("memory", "location_trail", "camera_derived_inventory", "health_device", "social_sharing", "calendar",
+                  "camera_images_off_device")
 
 
 class LoginIn(BaseModel):
@@ -150,6 +151,8 @@ def revoke(scope: str, user=CurrentUser):
         raise ApiError(400, "INVALID_INPUT", "Unknown consent scope.")
     if scope == "location_trail":
         db.run("DELETE FROM locations WHERE user_id=?", (user["id"],))
+    if scope == "camera_images_off_device":
+        laundry.forget_images(user)  # images that left the device are deleted when access is withdrawn
     return companion.set_consent(user, scope, False)
 
 

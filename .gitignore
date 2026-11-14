@@ -7,3 +7,7 @@ dist/
 .venv/
 __pycache__/
 .pytest_cache/
+
+# downloaded on-device model + runtime (Apache-2.0), see backend/README.md
+backend/app/static/vendor/
+.DS_Store

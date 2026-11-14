@@ -91,20 +91,88 @@ def test_compat_explore_products_medicine_wellbeing(client):
     assert wb["meals"] and wb["activities"] and wb["sources"]
 
 
-def test_compat_chat_safety_and_memory(client):
-    crisis = client.post("/api/chat", json={"text": "I want to hurt myself", "memoryConsent": True}).json()
-    assert crisis["replies"][0]["kind"] == "care" and crisis["replies"][0]["crisis"] is True
-    assert "memory" not in crisis
-    sad = client.post("/api/chat", json={"text": "feeling really lonely today", "memoryConsent": False}).json()
-    assert any(r.get("kind") == "care" for r in sad["replies"])
-    pref = client.post("/api/chat", json={"text": "I really love board games", "memoryConsent": True}).json()
-    assert pref["memory"] == "Likes board games"
-    mems = client.get("/api/v1/memories").json()["items"]
-    assert any(m["text"] == "Likes board games" for m in mems)
-    off = client.post("/api/chat", json={"text": "I like karaoke", "memoryConsent": False}).json()
-    assert "memory" not in off and "Memory is off" in off["replies"][0]["text"]
-    hi = client.post("/api/chat", json={"text": "hey"}).json()
-    assert "Alex" in hi["replies"][0]["text"]
+def _fake_claude(monkeypatch, script):
+    """Scripted Claude: script(kw) -> list of content blocks for each messages.create call."""
+    from types import SimpleNamespace as NS
+    from app import llm
+    from app.config import settings
+    calls = []
+
+    class Msgs:
+        def create(self, **kw):
+            calls.append(kw)
+            blocks = [NS(**b) for b in script(kw)]
+            stop = "tool_use" if any(b.type == "tool_use" for b in blocks) else "end_turn"
+            return NS(stop_reason=stop, content=blocks)
+    monkeypatch.setattr(settings, "llm_enabled", True)
+    monkeypatch.setattr(settings, "anthropic_api_key", "test-key")
+    monkeypatch.setattr(llm, "_client", NS(messages=Msgs()))
+    return calls
+
+
+def _tool_results(kw):
+    last = kw["messages"][-1]["content"]
+    return [b for b in last if isinstance(b, dict) and b.get("type") == "tool_result"] if isinstance(last, list) else []
+
+
+def test_chat_is_the_claude_agent_with_exa_as_its_only_search(client, monkeypatch):
+    from app import exa_client
+    searched = []
+
+    def fake_search(user_id, kind, query, **kw):
+        searched.append((kind, query))
+        return {"available": True, "source": "live", "results": [
+            {"url": "https://helmet.fi/en/events/boardgames", "title": "Board game night", "domain": "helmet.fi", "highlights": ["Oodi, Fri 18:00"]},
+            {"url": "https://example.org/other", "title": "Other", "domain": "example.org", "highlights": ["x"]}]}
+    monkeypatch.setattr(exa_client, "search", fake_search)
+
+    def script(kw):
+        res = _tool_results(kw)
+        if not res:
+            return [{"type": "tool_use", "id": "t1", "name": "exa_search", "input": {"query": "board game night Helsinki", "recent_only": True}},
+                    {"type": "tool_use", "id": "t2", "name": "save_memory", "input": {"text": "Likes board games"}}]
+        assert [r["tool_use_id"] for r in res] == ["t1", "t2"] and "[1] Board game night" in res[0]["content"]
+        return [{"type": "text", "text": "Oodi has a board game night on Friday at 18:00 [1] 🎲"}]
+    calls = _fake_claude(monkeypatch, script)
+
+    r = client.post("/api/chat", json={"text": "I love board games, anything on this week?", "memoryConsent": True}).json()
+    tools = calls[0]["tools"]
+    assert [t["name"] for t in tools if "search" in t["name"]] == ["exa_search"]
+    assert all("type" not in t for t in tools)          # no Anthropic server tools (e.g. web_search)
+    assert calls[0]["model"] == "claude-haiku-5-5" and searched == [("chat", "board game night Helsinki")]
+    rep = r["replies"][0]
+    assert r["agent"] is True and rep["kind"] == "find" and "[1]" not in rep["text"] and "Oodi" in rep["text"]
+    assert rep["sources"] == [{"title": "Board game night", "url": "https://helmet.fi/en/events/boardgames"}]
+    assert r["memory"] == "Likes board games"
+    assert any(m["text"] == "Likes board games" for m in client.get("/api/v1/memories").json()["items"])
+
+
+def test_chat_agent_memory_off_and_care(client, monkeypatch):
+    def script(kw):
+        res = _tool_results(kw)
+        if not res:
+            return [{"type": "tool_use", "id": "m", "name": "save_memory", "input": {"text": "Likes karaoke"}},
+                    {"type": "tool_use", "id": "c", "name": "offer_reach_out", "input": {"reason": "lonely"}}]
+        assert "Memory is off" in res[0]["content"]
+        return [{"type": "text", "text": "Karaoke is the best. Want me to turn memory on so I keep that?"}]
+    _fake_claude(monkeypatch, script)
+    r = client.post("/api/chat", json={"text": "feeling lonely, I like karaoke though", "memoryConsent": False}).json()
+    assert "memory" not in r and any(x.get("kind") == "care" for x in r["replies"])
+    assert not any(m["text"] == "Likes karaoke" for m in client.get("/api/v1/memories").json()["items"])
+
+
+def test_chat_crisis_safety_net_holds_without_the_model(client, monkeypatch):
+    from app.config import settings
+    calls = _fake_claude(monkeypatch, lambda kw: [{"type": "text", "text": "I'm right here with you."}])
+    r = client.post("/api/chat", json={"text": "I want to hurt myself", "memoryConsent": True}).json()
+    assert r["replies"][0]["kind"] == "care" and r["replies"][0]["crisis"] is True
+    assert r["replies"][1]["text"] == "I'm right here with you." and "MIELI" in r["replies"][-1]["text"]
+    assert "exa_search" not in [t["name"] for t in calls[0]["tools"]] and "memory" not in r
+    monkeypatch.setattr(settings, "llm_enabled", False)        # model down: the care card and helpline still show
+    r = client.post("/api/chat", json={"text": "I want to hurt myself"}).json()
+    assert r["replies"][0]["crisis"] is True and "MIELI" in r["replies"][-1]["text"] and r["agent"] is False
+    off = client.post("/api/chat", json={"text": "hey"}).json()
+    assert off["agent"] is False and "brain" in off["replies"][0]["text"]
 
 
 # -------------------------------------------------------------- organiser
@@ -318,3 +386,23 @@ def test_media_not_configured_is_explicit(client):
 def test_usage_ledger(client):
     u = client.get("/api/v1/usage").json()
     assert u["exa"]["totalBudgetUsd"] <= 50
+
+
+def test_deals_compare_modes_like_for_like_and_on_the_way(client):
+    from app import db, seed
+    client.post("/api/v1/consents/location_trail")
+    me = client.get("/api/v1/me").json()
+    db.run("DELETE FROM locations WHERE user_id=?", (me["id"],))
+    seed.seed_location_trail(db.q1("SELECT * FROM users WHERE id=?", (me["id"],)))
+    items = [{"id": "i1", "name": "Oat milk 1 L", "qty": 2}, {"id": "i2", "name": "Eggs (10)", "qty": 1}, {"id": "i4", "name": "Coffee beans 500 g", "qty": 1}]
+    r = client.post("/api/deals", json={"items": items, "strategy": "route"}).json()
+    assert r["strategy"] == "route" and r["itemCount"] == 3 and r["pricedCount"] == 3
+    # on the way = stores within 500 m of the usual Home → University → Café Regatta → Home path
+    assert {p["store"]["name"] for p in r["plan"]} <= {"Alepa Kallio", "K-Supermarket Kamppi"}
+    assert all(p["store"]["detourKm"] <= 0.5 for p in r["plan"]) and "University" in r["note"]
+    # one search, every mode; totals on the same items, so cheapest overall is never beaten
+    modes = {m["id"]: m for m in r["modes"]}
+    assert set(modes) == {"multi", "single", "mall", "nearest", "route"} and set(r["alternatives"]) == set(modes) - {"route"}
+    assert all(modes["multi"]["comparableTotal"] <= m["comparableTotal"] + 1e-9 for m in modes.values())
+    bad = client.post("/api/deals", json={"items": items, "strategy": "teleport"})
+    assert bad.status_code == 400
