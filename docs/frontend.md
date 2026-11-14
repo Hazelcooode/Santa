@@ -73,7 +73,7 @@ Product photos use Cloudinary background removal, enhancement and equal 640×640
 
 `space-preview.js` provides a native modal, opened by **Preview in your space** at list level. Select one app-found product, upload one environment photo, generate, view/download and close. Browser preprocessing limits image dimensions and removes metadata. No uploads or generated results enter localStorage. Escape, closing, page exit and `unmountWatches` clear object URLs and request deletion. If a create request completes after close, its returned session is immediately closed too.
 
-Each product also has **Generate 3D turn**, using the same temporary session UI without a room upload. The player uses the owned same-origin stream with inline MP4 playback. AI proportions and unseen sides are explicitly approximate. See [Cloudinary studio](cloudinary-studio.md) for service setup, limits and cleanup semantics.
+Each product also has **Generate 360° video**, using the same temporary session UI without a room upload. The player uses the owned same-origin stream with inline MP4 playback. AI proportions and unseen sides are explicitly approximate. See [Cloudinary studio](cloudinary-studio.md) for service setup, limits and cleanup semantics.
 
 
 Current UI: see [the screenshot-based redesign](ui-redesign.md) for shared layouts, static/connected modes, individual-event filtering and itinerary exports.
@@ -87,3 +87,14 @@ Latest behaviour: [manual grocery pricing, strict attributes, temporary research
 The preview dialog now offers Clothing/shoes, Room item/furniture, and Other placement, with optional user instructions and a prominent AI-quality warning. Room and clothing prompts are separate; paired shoes are treated as a pair when both feet are visible. Object turns use a beige Cloudinary-prepared start frame and a matching background prompt.
 
 The app has one account/preferences control in the sidebar. Version, session/date strip and the global backend banner are removed; simulations remain labeled in the relevant flows. Groceries removes the percentage-comparison hero card and moves the known basket total below item results. Each shop basket expands to a compact image-free list of the lowest current per-item quote, quantity-adjusted amount and merchant link. Missing quotes are crossed out and labeled No current quote. Shops are grouped by website hostname rather than inconsistent extracted store labels; partial totals remain distinguished from complete baskets.
+
+The grocery Price lookup details panel is removed. Object videos request a full 360° turn and are delivered at no more than five seconds. A large, accessible purple failure card displays the sad Sola mascot for creation, polling and media-loading errors; loading retries reuse the generated asset.
+
+
+## Discover: up to twenty suggestions
+
+Location is required. The visible search-type and country-code controls are removed; the website always requests events internally. Optional fields are dates, number of people, admission (free or paid / free only / paid), and up to 600 characters of context. Requests can be broad seasonal ideas (Christmas in Helsinki) or learning sessions (beginner AI workshops, including Luma).
+
+The backend combines several event/activity/workshop search batches, with a dedicated Luma batch for learning requests. Candidates are interleaved, deduplicated and validated before returning at most 20 cards. Listings and unrelated roundups remain excluded; one specific sourced ongoing activity is allowed alongside a dated event. A card can show a concrete activity idea and an expandable full description. Fewer qualifying sources means fewer cards; the app does not invent twenty results. Explicit admission preferences require source evidence; group capacity stays unverified unless stated. Saving a trip still supports up to eight stops and at most three event videos.
+
+3D video preview sessions now expire seven minutes after creation, including generation time. The frontend uses the remaining lifetime reported by the server rather than a separate fourteen-minute timer. Room/clothing image previews retain their fifteen-minute lifetime. Closing revokes access and queues Cloudinary cleanup; late provider work is still cleaned up.

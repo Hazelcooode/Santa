@@ -39,7 +39,7 @@ All grocery and watch product photos now use uploaded Cloudinary assets with bac
 
 **Preview in your space** is a list-level action on current research and saved lists. Choose one app-found product and upload one environment photo. The browser resizes/re-encodes it before uploading. Cloudinary generates a contextual replacement or addition with approximate proportions. Only viewing/downloading is offered; there is no account gallery. Closing, Escape or navigation revokes access and requests deletion; abandoned sessions expire after 15 minutes and failed provider deletions are retried.
 
-**Generate 3D turn** requests AI object yaw 45° left and right with a fixed camera. The four-second generated motion is accelerated into a three-second MP4. Unseen geometry is inferred, not measured. The old flat/mirrored image animation is removed. Generation is user-requested and temporary, not persisted on a watch.
+**Generate 360° video** requests one complete rotation of the object with a fixed camera. A six-second generation is accelerated by 20% and capped at five seconds for playback and download. Unseen geometry is inferred, not measured. The old flat/mirrored image animation is removed. Generation is user-requested and temporary, not persisted on a watch.
 
 See [Cloudinary studio](cloudinary-studio.md) for setup, privacy, add-on permissions, APIs, cleanup details and use cases. CLOUDINARY_URL alone does not activate the required generation add-ons. Real API outputs have not been tested.
 
@@ -70,3 +70,7 @@ Cloudinary reference: [background removal](https://cloudinary.com/documentation/
 
 
 Latest UI update: [preview modes and compact shopping UI](frontend.md#preview-modes-and-compact-shopping-ui). Cloudinary placement now separates clothing/paired-shoe try-on, room items and other contexts, prioritizes generation quality and preserves photo orientation. Object turns start on warm beige. Shop totals expand to text-only item breakdowns, with missing quotes crossed out. The main basket total sits below the item results.
+
+Groceries no longer renders the Price lookup details disclosure. Price refresh messages, product sources, shop item breakdowns and selected baskets remain available. Generation and playback errors now use a prominent purple card with the sad Sola mascot and retry controls.
+
+Discover now supports up to twenty source-backed events/activity ideas per prompt. Location is mandatory, with optional group size, admission preference, context and dates. Type/country-code fields are hidden from the website. Learning requests also search Luma. Read [the current Discover contract](frontend.md#discover-up-to-twenty-suggestions). Object-turn video sessions expire after seven minutes including generation time; image-placement sessions remain fifteen minutes.

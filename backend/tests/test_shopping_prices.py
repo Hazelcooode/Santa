@@ -411,7 +411,7 @@ def test_copenhagen_events_do_not_append_home_city_and_can_be_combined(account,m
             p.url='https://events.example/'+city;p.image='https://photos.example/'+city+'.jpg';pages.append(p)
         return SimpleNamespace(results=pages,cost_dollars=SimpleNamespace(total=.007))
     monkeypatch.setattr(fake,'search',search)
-    result=client.post('/api/v1/explore',json={'query':'Copenhagen, Christmas markets','kind':'events'}).json()
+    result=client.post('/api/v1/explore',json={'query':'Copenhagen, Christmas markets','kind':'events','location':'Copenhagen'}).json()
     assert [r['title'] for r in result['results']]==['Copenhagen Christmas Market']
     event=result['results'][0]
     assert event['endDate']=='2099-12-30' and event['startTime']=='11:00'
@@ -491,7 +491,7 @@ def test_event_listing_refines_to_single_event_without_merging(account,monkeypat
         page.url='https://events.example/comedy-night' if single else 'https://events.example/calendar'
         return SimpleNamespace(results=[page],cost_dollars=SimpleNamespace(total=.007))
     monkeypatch.setattr(fake,'search',search)
-    result=client.post('/api/v1/explore',json={'query':'Comedy in Copenhagen','kind':'events'}).json()
+    result=client.post('/api/v1/explore',json={'query':'Comedy in Copenhagen','kind':'events','location':'Copenhagen'}).json()
     assert len(result['results'])==1
     event=result['results'][0]
     assert event['eventPageType']=='single_event' and event['url'].endswith('/comedy-night')

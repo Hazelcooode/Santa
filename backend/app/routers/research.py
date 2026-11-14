@@ -20,6 +20,10 @@ class ExploreIn(BaseModel):
     interests: Optional[List[str]] = None
     destination: str = Field('', max_length=100)
     destinationCountry: str = Field('', max_length=2)
+    location: str = Field('', max_length=100)
+    people: Optional[int] = Field(None, ge=1, le=1000)
+    admission: str = Field('any', pattern='^(any|free|paid)$')
+    context: str = Field('', max_length=600)
     dateFrom: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     dateTo: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
 
@@ -92,6 +96,9 @@ class TeaserIn(BaseModel):
 
 @router.post("/explore")
 def explore(body: ExploreIn, user=CurrentUser):
+    location = (body.location or body.destination).strip()
+    if not location:
+        raise ApiError(422, 'LOCATION_REQUIRED', 'Choose a location for your suggestions.')
     for value in (body.dateFrom,body.dateTo):
         if value:
             try: date.fromisoformat(value)
@@ -100,7 +107,9 @@ def explore(body: ExploreIn, user=CurrentUser):
         search_scope.validate(body.destinationCountry.upper())
     if body.dateFrom and body.dateTo and body.dateFrom > body.dateTo:
         raise ApiError(400,'INVALID_INPUT','End date must be after the start date.')
-    return treats.explore(user, body.query, body.kind, body.interests, destination=body.destination, destinationCountry=body.destinationCountry.upper(), dateFrom=body.dateFrom, dateTo=body.dateTo)
+    return treats.explore(user, body.query, 'events', body.interests, destination=location,
+                          destinationCountry=body.destinationCountry.upper(), dateFrom=body.dateFrom, dateTo=body.dateTo,
+                          people=body.people, admission=body.admission, context=body.context)
 
 
 @router.post("/products/search")

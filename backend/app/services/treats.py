@@ -23,6 +23,8 @@ def explore(user, query, kind="events", interests=None, **location):
     if kind not in ("events", "travel"):
         raise ApiError(400, "INVALID_INPUT", "kind must be events or travel.")
     q = (query or "").strip()[:200]
+    if kind == 'events' and not (location.get('destination') or location.get('location')):
+        location['destination'] = user.get('city') or ''  # Legacy/mobile callers; /v1/explore requires explicit location.
     res = agents.run(user, "events" if kind == "events" else "travel",
                      {"query": q or ("Lapland this winter" if kind == "travel" else ""), "interests": _interests(user, interests), "forceRefresh": True, **location})
     if res.get("status") == "clarifying":

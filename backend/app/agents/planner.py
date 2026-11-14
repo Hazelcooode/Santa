@@ -278,7 +278,7 @@ def plan_events(user, spec, bundle):
         lst.sort(key=lambda e: -e["_s"])
         for e in lst:
             e.pop("_s")
-        return {"results": lst, "query": q, "summary": "%d demo events" % len(lst)}
+        return {"results": lst[:20], "query": q, "summary": "%d demo events" % len(lst)}
 
     posts = _posts(bundle)
     today = date.today().isoformat()
@@ -287,13 +287,24 @@ def plan_events(user, spec, bundle):
         if c["key"] != "events":
             continue
         s = _summary(c)
-        if s.get('event_page_type') != 'single_event':
-            diagnostics.append({'url':c['url'],'reason':'This is a listing, article or unverified event page. Only individual event detail pages are shown.'})
+        if s.get('event_page_type') not in ('single_event', 'activity'):
+            diagnostics.append({'url':c['url'],'reason':'This is a listing, article or unverified event page. Only individual event pages or specific sourced activities are shown.'})
             continue
         title = (s.get("title") or c["title"]).strip()
-        if not title or title.lower() in seen:
+        if not title or ' '.join(title.casefold().split()) in seen:
             continue
-        if q and s.get('location_match') is not True:
+        if (q or spec.get('eventDestination')) and s.get('location_match') is not True:
+            continue
+        admission = s.get('admission') or 'unknown'
+        price_text = (s.get('price_text') or '').strip()
+        if admission == 'unknown' and re.fullmatch(r'(free|free admission|free entry|0(?:[.,]00)?(?:\s*(?:eur|euro|€))?)', price_text, re.I):
+            admission = 'free'
+        requested_admission = spec['payload'].get('admission') or 'any'
+        if requested_admission != 'any' and admission != requested_admission:
+            diagnostics.append({'url': c['url'], 'reason': 'The requested admission type is not confirmed by this source.'})
+            continue
+        if spec['payload'].get('people') and s.get('group_suitable') is False:
+            diagnostics.append({'url': c['url'], 'reason': 'The source rules do not suit the requested group size.'})
             continue
         event_end = s.get('end_date') or s.get('start_date') or '9999'
         if spec['payload'].get('dateFrom') and event_end < spec['payload']['dateFrom']:
@@ -302,23 +313,24 @@ def plan_events(user, spec, bundle):
             continue
         if event_end < today:
             continue  # already happened
-        seen.add(title.lower())
+        seen.add(' '.join(title.casefold().split()))
         where = ", ".join(x for x in (s.get("venue"), s.get("city")) if x) or spec.get("city") or ""
         text = " ".join([title, s.get("category") or "", s.get("summary") or ""])
         results.append({
             "id": "ev_" + hashlib.sha1(c["url"].encode()).hexdigest()[:10],
-            "title": title[:120], "when": s.get("date_text") or "See listing", "where": where[:80],
+            "title": title[:120], "when": s.get("date_text") or "Check source for dates/opening times", "where": where[:80],
             "startDate": s.get('start_date') or '', "endDate": s.get('end_date') or s.get('start_date') or '',
             "startTime": s.get('start_time') or '', "endTime": s.get('end_time') or '', "city": s.get('city') or '', "country": s.get('country') or '',
             "price": s.get("price_text") or "See source", "tags": [t for t in [s.get("category")] if t],
             "why": _why(text, interests, q), "summary": s.get("summary") or (c["highlights"] or [""])[0][:200],
             "art": _art_for(text), "images": [c["image"]] if c.get("image") else [],
+            "activityIdea": s.get("activity_idea") or "", "admission": admission,
             "posts": posts[:1], "sources": [{"title": c["title"][:90], "url": c["url"]}] + [{"title": "Social post", "url": p["url"]} for p in posts[:1]],
-            "url": c["url"], "eventPageType":"single_event", "evidence":s.get("event_evidence") or "",
+            "url": c["url"], "eventPageType":s.get("event_page_type"), "evidence":s.get("event_evidence") or "",
         })
-    return {"results": results[:8], "query": q, "diagnostics":diagnostics[:20],
-            "notice":"Individual event detail pages only. Dates, prices and availability are source claims; review the original source.",
-            "summary": "%d individual events" % len(results[:8])}
+    return {"results": results[:20], "query": q, "diagnostics":diagnostics[:20],
+            "notice":"Up to 20 individual events and specific activity ideas. Dates, admission and group capacity require checking with the source; fewer results means fewer qualifying matches were found.",
+            "summary": "%d event and activity suggestions" % len(results[:20])}
 
 
 # --------------------------------------------------------------------- travel

@@ -110,3 +110,10 @@ Additional search/watch/check/history endpoints and payload semantics are specif
 ## Implemented Cloudinary studio endpoints
 
 See [Cloudinary studio API](cloudinary-studio.md#api) for temporary `/visual-previews` creation/status/content/deletion and `/product-images/{key}`. Generic flat-photo `/media/rotation` is removed (410). Watch-option `/rotation` now returns a temporary generative job (202), not saved media.
+
+
+## Current Discover request
+
+`POST /api/v1/explore` accepts `{query, location, people?, admission?, context?, dateFrom?, dateTo?}`. `location` must be nonempty (legacy `destination` is accepted as an alias); admission is `any`, `free` or `paid`, people is an optional integer 1–1000, context is at most 600 characters. This website endpoint always researches events internally and returns at most 20 distinct sourced events/specific activities. Generic roundups are not cards. Legacy country fields are not exposed in the website. Optional group size guides suitability, not claimed ticket inventory or fabricated total cost. `activityIdea` and `eventPageType=activity` may be included for an actionable sourced suggestion.
+
+`GET/POST /api/v1/visual-previews` responses now include `expiresInSeconds`. A video session expires after seven minutes from creation; an image-placement session after fifteen minutes. Lifetime includes generation. Expired content remains inaccessible and provider cleanup is retried.

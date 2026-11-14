@@ -23,6 +23,7 @@ _active = set()
 _stop = threading.Event()
 _reaper = None
 TTL = 15 * 60
+TURN_TTL = 7 * 60
 MAX_PHOTO = 4 * 1024 * 1024
 log = logging.getLogger(__name__)
 
@@ -135,8 +136,9 @@ def start(user, body):
             raise ApiError(429, 'PREVIEW_BUSY', 'A preview is already being generated. Close it or wait before trying again.')
         sid = db.new_id('vs_')
         root = 'sola/temporary/' + sid
+        expires = time.time() + (TURN_TTL if body['kind'] == 'turn' else TTL)
         db.run('INSERT INTO visual_sessions(id,user_id,kind,status,expires,purge_after,room_id,result_id,preset) VALUES(?,?,?,?,?,?,?,?,?)',
-               (sid, user['id'], body['kind'], 'queued', time.time()+TTL, time.time()+86400,
+               (sid, user['id'], body['kind'], 'queued', expires, time.time()+86400,
                 root+'/room' if raw else None, root+'/result' if raw else None, 'sola_'+sid if raw else None))
         _active.add(sid)
         _pool.submit(_generate, sid, images[0], chosen.get('title', 'product'), raw,
@@ -176,6 +178,8 @@ def _generate(sid, source, title, raw, preview_mode='room', instructions=''):
         if not thumbnail:
             raise ApiError(409, 'NO_PRODUCT_PHOTO', 'This product has no usable photo.')
         product = product_media.for_generation(thumbnail.rsplit('/', 1)[-1])
+        if _cancelled(sid):
+            raise ApiError(410, 'PREVIEW_CLOSED', 'Preview closed or expired; cleanup is queued.')
         row = _row(sid)
         name = cloud.config().cloud_name
         if raw:
@@ -224,17 +228,22 @@ def _generate(sid, source, title, raw, preview_mode='room', instructions=''):
             studio_frame = cloud.uploader.upload(studio_frame_url,
                 public_id='sola/products/turn_'+product_key, resource_type='image',
                 overwrite=False, backup=False, format='jpg')
+            if _cancelled(sid):
+                raise ApiError(410, 'PREVIEW_CLOSED', 'Preview closed or expired; cleanup is queued.')
             result = _api('POST', f'video/{name}/image_to_video/generate', json={
-                'image_asset_id': studio_frame['asset_id'], 'duration': 4, 'resolution': '720p',
+                'image_asset_id': studio_frame['asset_id'], 'duration': 6, 'resolution': '720p',
                 'generate_audio': False, 'enhance_prompt': False,
                 'prompt': 'Locked camera. Seamless matte warm light beige / pale sand studio background, color #F3E8DC, '
                           'with a matching warm beige floor, soft diffuse light and a subtle natural contact shadow. '
                           'Keep this beige background fixed throughout; no white, black, scenery or background color changes. '
                           'The actual three-dimensional product '+title[:300]+
-                          ' turns around its upright vertical axis: front view, yaw 45 degrees to the left, smoothly turn '
-                          'through center to 45 degrees to the right, then return to front within four seconds. '
+                          ' performs exactly one continuous complete 360-degree turn around its upright vertical axis '
+                          'in six seconds: front at 0 degrees, side at 90, back at 180, opposite side at 270, '
+                          'and the original front view at 360. Keep a steady direction and smooth constant speed. '
+                          'Keep the entire object centered and fully visible, with no cuts or changes of object. '
                           'Show changing side surfaces, depth and perspective. Preserve identity, proportions, labels and material. '
-                          'No flat image-plane rotation, no mirroring, no full 360 turn, no camera orbit, no added objects.'})
+                          'Rotate the three-dimensional object itself, not the flat image. No mirroring, no rocking back '
+                          'and forth, no camera orbit, no added objects.'})
             db.run('UPDATE visual_sessions SET provider_job=? WHERE id=?', (result['job_id'], sid))
             for _ in range(180):
                 if _cancelled(sid):
@@ -276,7 +285,8 @@ def state(user, sid):
         raise ApiError(410, 'PREVIEW_CLOSED', 'This temporary preview has closed or expired.')
     return {'id': sid, 'kind': row['kind'], 'status': row['status'], 'error': row['error'],
             'url': f'/api/v1/visual-previews/{sid}/content' if row['status'] == 'ready' else None,
-            'notice': 'AI visualization: proportions and unseen sides are inferred. Closes automatically after 15 minutes.'}
+            'expiresInSeconds': max(0, row['expires'] - time.time()),
+            'notice': 'AI visualization: proportions and unseen sides are inferred. Closes automatically after '+('7 minutes.' if row['kind'] == 'turn' else '15 minutes.')}
 
 
 def close(user, sid):
@@ -399,8 +409,8 @@ def content(user, sid, range_header=None, download=False):
     cloud = media._require()
     from cloudinary.utils import cloudinary_url
     is_video = row['kind'] == 'turn'
-    # Cloudinary acceleration accepts integer percentages: 33% plus a 3s trim.
-    transformations = [{'effect': 'accelerate:33'}, {'duration': 3, 'video_codec': 'h264'}] if is_video else []
+    # Generate one complete six-second turn, then speed it up 20% to five seconds.
+    transformations = [{'effect': 'accelerate:20'}, {'duration': 5, 'video_codec': 'h264'}] if is_video else []
     url, _ = cloudinary_url(row['result_id'], resource_type='video' if is_video else 'image',
         type=row['result_type'], format='mp4' if is_video else 'png', secure=True, sign_url=True,
         transformation=transformations)

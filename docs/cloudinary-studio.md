@@ -23,11 +23,13 @@ Cloudinary background removal may initially return 420/423. The frontend retries
 
 Example: a carton photographed on a kitchen counter becomes a centered transparent product cutout in both the grocery list and Price watch. Without configured Cloudinary, show a placeholder rather than the original.
 
-### Three-second object turn
+### Full 360-degree object turn (at most five seconds)
 
-Each found product has **Generate 3D turn**, including unsaved current research. Cloudinary Image to Video is prompted to turn the object around its upright axis: front → 45° left → 45° right → front, with a fixed camera. The input cutout is first flattened onto a warm light beige (`#F3E8DC`) studio background through Cloudinary; the video prompt keeps that background and floor constant. This is generative depth motion, not a flattened, mirrored or spinning photograph. There is no full 360° claim.
+Each found product has **Generate 360° video**, including unsaved current research. Cloudinary Image to Video is prompted to rotate the three-dimensional object exactly once through front, side, back, opposite side and front, in one steady direction with a fixed camera. The input cutout is first flattened onto warm light beige (`#F3E8DC`); the prompt keeps the matching studio floor and background fixed. This is AI-generated depth motion, not a flat photo spin, mirrored image or verified 3D scan.
 
-The documented generation API accepts 4/6/8 seconds. The app requests four seconds at 720p without audio, then Cloudinary delivery accelerates the motion by 33% and trims playback to three seconds. This keeps both directions rather than cutting off the final second. Inline playback uses the authenticated app endpoint, MP4/H.264, byte ranges and `playsinline`; downloading is also available.
+The generation API accepts 4/6/8 seconds. The app requests six seconds at 720p without audio; Cloudinary delivery accelerates the complete motion by 20% and caps output at five seconds. Both inline playback and download use this same five-second MP4/H.264 rendition through the owned content endpoint. Byte ranges and `playsinline` remain supported.
+
+Creation, polling and playback failures show a large purple error card with the sad Sola mascot, a readable message and retry controls. Delivery failures offer **Retry loading** for the existing asset, avoiding an unnecessary generation request. New generation clears the old error state. Unknown sides remain inferred and the model may fail to follow a complete rotation accurately.
 
 Example: inspect the inferred sides of a chair or a pair of boots. Unseen geometry is invented by the model and can be inaccurate, especially for text, transparent objects, flat products or complex mechanisms. It is not a scanned/measured 3D model, and reliable motion cannot be guaranteed for every object. Failure is shown explicitly; the previous fake 2D rotation endpoint returns 410.
 
@@ -57,7 +59,7 @@ The static `npm run dev` mode supports the dialog, choosing a product and prepro
 - `product_image_cache`: source URL, cache key, original managed asset ID and cleaned managed asset ID. This cache contains public product photography, never room photos. It is reusable across visits.
 - `visual_sessions`: owner, kind/status, timestamps, provider task and deletion identifiers, preset name and safe error text. It stores no room bytes, base64 data, generated image URLs, product prompts or account-gallery entries. Upload bytes exist in worker memory only while processing.
 - Room source uploads and room outputs use authenticated Cloudinary delivery, no backups. Signed provider URLs stay on the server; the app streams output through an ownership-checked same-origin endpoint with `Cache-Control: no-store`.
-- Room source is destroyed after generation. Close immediately revokes app access and queues remaining deletion. The cleanup sweep runs every 15 seconds, with failed provider operations retried at five-minute intervals. Session access expires 15 minutes after creation. Normal completed/closed sessions are removed from the ledger after successful cleanup.
+- Room source is destroyed after generation. Close immediately revokes app access and queues remaining deletion. The cleanup sweep runs every 15 seconds, with failed provider operations retried at five-minute intervals. Session access expires seven minutes after creation for object-turn videos, including generation time; room/clothing image sessions expire after fifteen minutes. Normal completed/closed sessions are removed from the ledger after successful cleanup.
 - Failed/interrupted generation identifiers remain as deletion tombstones for at least 24 hours, so late-created assets can be destroyed after timeout or restart. Failed deletions remain queued until the provider is available; do not claim instantaneous guaranteed deletion during an outage. Unknown unfinished provider tasks are polled for cleanup before their result identifiers are discarded.
 - A downloaded copy deliberately saved by the user remains on their device. Existing saved event posters/teasers are separate and retain their prior lifecycle.
 
@@ -85,3 +87,5 @@ Official contracts: [Image Generation API](https://cloudinary.com/documentation/
 
 
 The preview dialog prominently warns that AI output may be low quality or completely unrealistic, particularly for clothing/shoes. Prompts improve guidance but cannot guarantee correct paired items, anatomy, fit or product fidelity. Generation quality preference may take longer and consume more provider credits. Uploaded placement instructions remain in worker memory only, not in saved galleries or the cleanup ledger.
+
+3D preview timeout update: video sessions auto-close at seven minutes from creation, including preparation and generation. The API returns `expiresInSeconds`; the browser uses it for its close timer. New provider generation is not started after expiry. Image-placement sessions remain fifteen minutes.

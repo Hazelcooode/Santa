@@ -14,17 +14,17 @@ export function openVisualPreview({ offers, watchId, saveToken, kind = 'space', 
   dialog.className = 'space-preview-dialog sola-screen';
   dialog.setAttribute('aria-labelledby', 'space-preview-title');
   const choices = offers.filter(o => o.id);
-  let closed = false, working = false, jobId = null, photo = null, photoUrl = null, timer, expiry, photoVersion = 0;
+  let closed = false, working = false, jobId = null, photo = null, photoUrl = null, timer, expiry, photoVersion = 0, viewVersion = 0;
   let chosen = choices.find(o => o.id === optionId) || choices[0];
   const isSpace = kind === 'space';
-  dialog.innerHTML = `<div class="space-preview-head"><div><span class="ui-tag">CLOUDINARY STUDIO</span><h2 id="space-preview-title">${isSpace ? 'Preview in your space' : 'See it from both sides'}</h2></div><button class="button secondary" type="button" data-close aria-label="Close preview">✕</button></div>
-    <p class="ui-note">${isSpace ? 'Choose a product, select how you want to use it, and upload your photo. Add a short instruction for more precise placement.' : 'Generate a three-second view: 45° left, then 45° right, on a warm beige studio background.'}</p>
+  dialog.innerHTML = `<div class="space-preview-head"><div><span class="ui-tag">CLOUDINARY STUDIO</span><h2 id="space-preview-title">${isSpace ? 'Preview in your space' : 'See every side'}</h2></div><button class="button secondary" type="button" data-close aria-label="Close preview">✕</button></div>
+    <p class="ui-note">${isSpace ? 'Choose a product, select how you want to use it, and upload your photo. Add a short instruction for more precise placement.' : 'Generate a full 360° object turn in a video no longer than five seconds, on a warm beige studio background.'}</p>
     <p class="space-ai-warning" role="note"><strong>AI-generated visualization.</strong> Results can be low quality or completely unrealistic, especially for clothing and shoes. Fit, proportions, details and unseen surfaces may be wrong. This is not a reliable fitting tool.</p>
     <div class="space-preview-layout"><div class="space-preview-controls"><label class="field"><span>Choose a product</span><select data-product>${choices.map(o => `<option value="${esc(o.id)}" ${o.id === chosen?.id ? 'selected' : ''}>${esc(o.title)}</option>`).join('')}</select></label>
     <div class="space-product-image" data-product-image></div>
     ${isSpace ? `<label class="field"><span>How will you use it?</span><select data-preview-mode><option value="room">Item in a room / furniture</option><option value="clothing">Clothing, shoes &amp; accessories</option><option value="other">Other placement</option></select></label><p class="ui-note" data-mode-hint>Show the surface or existing object you want to replace.</p><label class="field"><span>What should change? <small>(optional)</small></span><textarea data-placement maxlength="500" rows="3" placeholder="e.g. Replace the chair beside the desk; keep everything else."></textarea></label><label class="space-photo-upload field"><span>Your photo</span><input data-photo type="file" accept="image/jpeg,image/png,image/webp"><small>JPEG, PNG or WebP · up to 12 MB. Resized on your device before upload.</small></label><img class="space-room-photo" data-room hidden alt="Your selected photo">` : ''}
-    <button class="button dark" data-generate ${isSpace || !chosen ? 'disabled' : ''}>${isSpace ? 'Create my preview' : 'Generate 3D turn'}</button>
-    <p class="ui-note">AI visualization. Size and unseen surfaces are approximate; product details may change. ${isSpace ? 'Your photo is processed temporarily by Cloudinary. Closing this dialog requests deletion. Abandoned sessions expire after 15 minutes; provider outages may delay deletion.' : 'An inferred view, not a scanned 3D model. Some objects may not turn accurately.'}</p></div>
+    <button class="button dark" data-generate ${isSpace || !chosen ? 'disabled' : ''}>${isSpace ? 'Create my preview' : 'Generate 360° video'}</button>
+    <p class="ui-note">AI visualization. Size and unseen surfaces are approximate; product details may change. ${isSpace ? 'Your photo is processed temporarily by Cloudinary. Closing this dialog requests deletion. Abandoned sessions expire after 15 minutes; provider outages may delay deletion.' : 'An inferred view, not a scanned 3D model. Some objects may not turn accurately. This video session closes after 7 minutes, including generation time; download it before closing if you want a copy.'}</p></div>
     <section class="space-preview-output" aria-label="Preview output"><div data-output><div class="space-preview-empty">${sadAvatarSvg()}<h3>${isSpace ? 'A little imagination. Your actual space.' : 'A new perspective on your shortlist.'}</h3><p>${isSpace ? 'Your preview will appear here.' : 'Generate only when you want a closer look.'}</p></div></div><p data-status role="status" aria-live="polite"></p><div class="ui-actions" data-result-actions hidden></div></section></div>`;
   document.body.append(dialog);
   const status = dialog.querySelector('[data-status]'), generate = dialog.querySelector('[data-generate]');
@@ -39,7 +39,7 @@ export function openVisualPreview({ offers, watchId, saveToken, kind = 'space', 
   const removeJob = id => request('/visual-previews/' + encodeURIComponent(id), { method: 'DELETE', keepalive: true }).catch(() => {});
   const session = { close() {
     if (closed) return;
-    closed = true; photoVersion++;
+    closed = true; photoVersion++; viewVersion++;
     clearTimeout(timer); clearTimeout(expiry);
     if (jobId) removeJob(jobId);
     photo = null;
@@ -96,6 +96,37 @@ export function openVisualPreview({ offers, watchId, saveToken, kind = 'space', 
     } catch (err) { status.textContent = err.message || 'This photo could not be decoded.'; }
     finally { bitmap?.close(); }
   });
+  function showFailure(message, retryLoad) {
+    if (closed) return;
+    clearTimeout(timer); viewVersion++;
+    working = false; generate.disabled = false; lockControls(false);
+    generate.textContent = isSpace ? 'Generate image again' : 'Generate video again';
+    status.textContent = message;
+    status.setAttribute('role', 'alert');
+    const actions = dialog.querySelector('[data-result-actions]');
+    actions.hidden = true; actions.innerHTML = '';
+    const output = dialog.querySelector('[data-output]');
+    output.innerHTML = `<div class="space-preview-failure" role="alert">${sadAvatarSvg()}<h3 tabindex="-1">${retryLoad ? 'Your preview could not load' : isSpace ? 'Your image could not be created' : 'Your 360° video could not be created'}</h3><p>${esc(message)}</p><p class="ui-note">${retryLoad ? 'Retry loading the existing preview, or generate a new one.' : 'You can try again. If it keeps failing, check Cloudinary access and available credits.'}</p>${retryLoad ? '<button type="button" class="button secondary" data-retry-load>Retry loading</button>' : ''}</div>`;
+    if (retryLoad) output.querySelector('[data-retry-load]').onclick = retryLoad;
+    output.querySelector('h3').focus({preventScroll:true});
+    output.scrollIntoView({block:'nearest',behavior:'smooth'});
+  }
+  function showResult(job, retry = false) {
+    if (closed) return;
+    const version = ++viewVersion;
+    status.setAttribute('role', 'status'); status.textContent = job.notice;
+    const output = dialog.querySelector('[data-output]');
+    const url = job.url + (retry ? '?retry=' + Date.now() : '');
+    output.innerHTML = isSpace ? `<img class="space-generated-image" src="${esc(url)}" alt="AI visualization of your chosen product in your environment">` : `<video class="space-generated-video" controls playsinline preload="metadata"><source src="${esc(url)}" type="video/mp4"></video>`;
+    // Capture source-element errors as well as errors on the video/image itself.
+    output.querySelector('img,video').addEventListener('error', () => {
+      if (version !== viewVersion) return;
+      showFailure('Cloudinary could not deliver the preview. It may still be preparing the file.', () => showResult(job, true));
+    }, {capture:true,once:true});
+    const actions = dialog.querySelector('[data-result-actions]'); actions.hidden = false;
+    actions.innerHTML = `<a class="button dark" download="sola-preview.${isSpace ? 'png' : 'mp4'}" href="${esc(job.url)}?download=true">Download ${isSpace ? 'image' : 'video'}</a><span class="ui-note">Download to keep a copy. This preview is not added to your account.</span>`;
+    working = false;
+  }
   async function poll() {
     if (closed) return;
     try {
@@ -103,41 +134,32 @@ export function openVisualPreview({ offers, watchId, saveToken, kind = 'space', 
       if (closed) return;
       if (job.status === 'failed') throw Error(job.error || 'Cloudinary could not generate this preview.');
       if (job.status !== 'ready') { timer = setTimeout(poll, 2500); return; }
-      status.textContent = job.notice;
-      const output = dialog.querySelector('[data-output]');
-      output.innerHTML = isSpace ? `<img class="space-generated-image" src="${esc(job.url)}" alt="AI visualization of your chosen product in your environment">` : `<video class="space-generated-video" controls playsinline preload="metadata"><source src="${esc(job.url)}" type="video/mp4"></video>`;
-      output.querySelector('img,video').addEventListener('error', () => {
-        status.textContent = 'Cloudinary is still preparing delivery. Retry loading the preview.';
-        const retry = document.createElement('button'); retry.className = 'button secondary'; retry.textContent = 'Retry loading';
-        retry.onclick = () => { retry.remove(); const el = output.querySelector('img,video'); if (isSpace) el.src = job.url + '?retry=' + Date.now(); else el.load(); };
-        dialog.querySelector('[data-result-actions]').append(retry);
-      });
-      const actions = dialog.querySelector('[data-result-actions]'); actions.hidden = false;
-      actions.innerHTML = `<a class="button dark" download="sola-preview.${isSpace ? 'png' : 'mp4'}" href="${esc(job.url)}?download=true">Download ${isSpace ? 'image' : 'video'}</a><span class="ui-note">Download to keep a copy. This preview is not added to your account.</span>`;
-      working = false;
+      showResult(job);
     } catch (err) {
-      status.textContent = err.message; working = false; generate.disabled = false;
-      dialog.querySelector('[data-output]').innerHTML = `<div class="space-preview-empty"><h3>Preview could not be created</h3><p>${esc(err.message)}</p></div>`;
-      lockControls(false);
+      showFailure(err.message);
     }
   }
   generate.onclick = async () => {
     if (working || !chosen || (isSpace && !photo)) return;
-    working = true; generate.disabled = true;
+    working = true; generate.disabled = true; viewVersion++;
+    clearTimeout(timer); clearTimeout(expiry);
+    status.setAttribute('role', 'status');
+    const actions = dialog.querySelector('[data-result-actions]'); actions.hidden = true; actions.innerHTML = '';
+    dialog.querySelector('[data-output]').innerHTML = `<div class="space-preview-empty">${sadAvatarSvg()}<h3>${isSpace ? 'Creating your image…' : 'Creating your 360° video…'}</h3><p>Generation can take a few minutes. You can close this dialog to cancel.</p></div>`;
     lockControls(true);
-    status.textContent = isSpace ? 'Cloudinary is placing your product into the scene…' : 'Cloudinary is generating the object’s side views. This can take a few minutes…';
+    status.textContent = isSpace ? 'Cloudinary is placing your product into the scene…' : 'Cloudinary is generating a complete 360° object turn. This can take a few minutes…';
     if (jobId) removeJob(jobId);
     try {
       const job = await request('/visual-previews', { method: 'POST', body: { kind, optionId: chosen.id, watchId, saveToken, ...(isSpace ? { imageData: photo, previewMode: dialog.querySelector('[data-preview-mode]').value, instructions: dialog.querySelector('[data-placement]').value.trim() } : {}) } });
       if (closed) { removeJob(job.id); return; }
       jobId = job.id;
       // The server independently enforces expiry even if the browser disappears.
-      expiry = setTimeout(session.close, 14 * 60 * 1000);
+      const remaining = Number.isFinite(job.expiresInSeconds) ? job.expiresInSeconds : (isSpace ? 15 * 60 : 7 * 60);
+      expiry = setTimeout(session.close, Math.max(0, remaining) * 1000);
       poll();
     } catch (err) {
       if (closed) return;
-      status.textContent = err.message; working = false; generate.disabled = false;
-      lockControls(false);
+      showFailure(err.message);
     }
   };
   showProduct(); dialog.showModal();

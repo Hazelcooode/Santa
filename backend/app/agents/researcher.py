@@ -24,7 +24,7 @@ SCHEMAS = {
         "type": "object",
         "properties": {
             "title": {"type": "string"},
-            "event_page_type": {"type":"string","enum":["single_event","event_listing","article","unknown"],"description":"single_event only when this page is dedicated to exactly ONE named event/edition; directories, calendars and top-N collections are event_listing. Never merge unrelated events."},
+            "event_page_type": {"type":"string","enum":["single_event","activity","event_listing","article","unknown"],"description":"single_event for a page dedicated to ONE named event/edition, including workshops and learning meetups. activity for ONE specific sourced attraction, experience or ongoing activity at a named place. Directories, calendars and top-N collections are event_listing. Never merge unrelated events."},
             "event_evidence": {"type":"string","description":"Verbatim source text identifying this one event, venue and schedule. Empty when unsupported."},
             "location_match": {"type": "boolean", "description": "True ONLY if this event is in the destination requested in the query. Do not substitute the user's home city."},
             "end_date": {"type": "string", "description": "Event end date YYYY-MM-DD, not article publication date; empty if unknown"},
@@ -37,7 +37,10 @@ SCHEMAS = {
             "city": {"type": "string"},
             "price_text": {"type": "string", "description": "Ticket price or 'Free'; empty if unknown"},
             "category": {"type": "string", "description": "One or two words, e.g. jazz, market, sport"},
-            "summary": {"type": "string", "description": "One short sentence about what to expect"},
+            "summary": {"type": "string", "description": "A useful 3-5 sentence description (roughly 70-140 words): what visitors can actually do/learn, atmosphere or audience, relevant dates/venue and admission when evidenced. Use source facts only; do not repeat generic filler or invent availability."},
+            "activity_idea": {"type": "string", "description": "One concrete thing the user can do at this event/activity, grounded in the source."},
+            "admission": {"type":"string","enum":["free","paid","unknown"],"description":"free only when admission is explicitly free; paid when an entrance ticket is required; unknown otherwise."},
+            "group_suitable": {"type":"boolean","description":"False only if the stated group size is explicitly incompatible with source rules. Do not infer ticket capacity or availability."},
         },
         "required": ["title", "location_match", "event_page_type"],
     },
@@ -146,10 +149,10 @@ def _run_query(user, qq):
                         combined.append(dict(r, fetchedAt=out.get('fetchedAt'), cached=out.get('source') == 'cache'))
             return dict(refined, results=combined, costUsd=res.get('costUsd', 0)+refined.get('costUsd', 0))
         res['refinementReason'] = refined.get('reason')
-    if (res['available'] and qq.get('event_refinement') and not any(
-            isinstance(r.get('summary'),dict) and r['summary'].get('event_page_type') == 'single_event'
-            and r['summary'].get('location_match') is True for r in res['results'])):
-        extra=exa_client.search(user['id'],qq['kind'],qq['event_refinement'],num_results=8,force_refresh=qq.get('forceRefresh',False),
+    if (res['available'] and qq.get('event_refinement') and sum(
+            isinstance(r.get('summary'),dict) and r['summary'].get('event_page_type') in ('single_event', 'activity')
+            and r['summary'].get('location_match') is True for r in res['results']) < qq.get('event_min_results', 1)):
+        extra=exa_client.search(user['id'],qq['kind'],qq['event_refinement'],num_results=10,force_refresh=qq.get('forceRefresh',False),
             user_location=qq.get('user_location'),include_domains=qq.get('include_domains'),
             summary_query=qq.get('summary_query'),summary_schema=SCHEMAS.get(qq.get('schema')))
         if extra['available']:
@@ -185,17 +188,23 @@ def research(user, spec):
     available = any(o["available"] for o in outs) if outs else False
     reasons = sorted({o.get("reason") for o in outs if not o["available"] and o.get("reason")})
     candidates, sources, seen, candidate_seen = [], [], set(), set()
-    for qq, out in zip(queries, outs):
-        for r in out["results"]:
-            if (qq['key'],r['url']) in candidate_seen:
-                continue
-            candidate_seen.add((qq['key'],r['url']))
-            candidates.append(dict(r, key=qq["key"], schema=qq.get("schema"), fetchedAt=r.get('fetchedAt') or out.get("fetchedAt"), cached=r.get('cached', out.get("source") == "cache")))
-            if r["url"] not in seen:
-                seen.add(r["url"])
-                sources.append({"title": r["title"], "url": r["url"], "domain": r["domain"],
-                                "excerpt": (r["highlights"] or [""])[0][:300], "publishedAt": r.get("publishedDate"),
-                                "image": r.get("image")})
+    ordered = [(qq, out, row) for qq, out in zip(queries, outs) for row in out['results']]
+    if spec.get('intent') == 'events':
+        # Interleave batches: one broad query must not crowd workshops/Luma out of the top twenty.
+        ordered = [(qq, out, out['results'][index])
+                   for index in range(max((len(out['results']) for out in outs), default=0))
+                   for qq, out in zip(queries, outs) if index < len(out['results'])]
+    for qq, out, r in ordered:
+        if (qq['key'], r['url']) in candidate_seen:
+            continue
+        candidate_seen.add((qq['key'], r['url']))
+        candidates.append(dict(r, key=qq['key'], schema=qq.get('schema'), fetchedAt=r.get('fetchedAt') or out.get('fetchedAt'), cached=r.get('cached', out.get('source') == 'cache')))
+        if r['url'] not in seen:
+            seen.add(r['url'])
+            sources.append({'title': r['title'], 'url': r['url'], 'domain': r['domain'],
+                            'excerpt': (r['highlights'] or [''])[0][:300], 'publishedAt': r.get('publishedDate'),
+                            'image': r.get('image')})
+
     return {
         "available": available,
         "reason": ", ".join(reasons) or ("no results" if not available else None),

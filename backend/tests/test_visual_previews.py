@@ -134,10 +134,10 @@ def test_video_requests_object_yaw_not_flat_rotation(studio):
     sid = client.post('/api/v1/visual-previews', json=body).json()['id']
     run_queued(queued)
     payload = calls[0][2]['json']
-    assert payload['duration'] == 4 and payload['generate_audio'] is False
+    assert payload['duration'] == 6 and payload['generate_audio'] is False
     assert payload['image_asset_id'] == 'room-asset'  # Mocked beige studio-frame upload.
-    assert '45 degrees to the left' in payload['prompt'] and '45 degrees to the right' in payload['prompt']
-    assert 'No flat image-plane rotation' in payload['prompt']
+    assert 'complete 360-degree turn' in payload['prompt'] and 'front view at 360' in payload['prompt']
+    assert 'not the flat image' in payload['prompt']
     assert visual.state(user, sid)['status'] == 'ready'
     assert len(uploads) == 1 and uploads[0][1]['public_id'].startswith('sola/products/turn_')
     assert 'b_rgb:f3e8dc' in uploads[0][0]
@@ -163,7 +163,7 @@ def test_async_image_task_is_polled_and_private_output_is_recorded(studio, monke
     assert visual._row(sid)['provider_job'] is None
 
 
-def test_video_proxy_has_three_second_transform_ranges_and_no_store(studio, monkeypatch):
+def test_video_proxy_has_five_second_transform_ranges_and_no_store(studio, monkeypatch):
     import httpx
     client, user, body, queued, *_ = studio
     body.update(kind='turn', imageData=None)
@@ -182,7 +182,7 @@ def test_video_proxy_has_three_second_transform_ranges_and_no_store(studio, monk
     assert r.headers['content-type'] == 'video/mp4'
     assert r.headers['cache-control'] == 'no-store'
     assert seen[0].headers['Range'] == 'bytes=0-2'
-    assert 'e_accelerate:33' in str(seen[0].url) and 'du_3' in str(seen[0].url) and 'vc_h264' in str(seen[0].url)
+    assert 'e_accelerate:20' in str(seen[0].url) and 'du_5' in str(seen[0].url) and 'vc_h264' in str(seen[0].url)
     r = client.get('/api/v1/visual-previews/' + sid + '/content?download=true')
     assert r.headers['content-disposition'].startswith('attachment;')
 

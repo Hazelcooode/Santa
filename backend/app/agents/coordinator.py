@@ -78,22 +78,57 @@ def plan(user, intent, payload):
     elif intent == "events":
         interests = payload.get("interests") or []
         topic = q or " ".join(interests[:2]) or "things to do"
-        destination = payload.get('destination') or ('' if q else city)
-        destination_country = payload.get('destinationCountry') or ('' if q else cc)
+        destination = str(payload.get('destination') or payload.get('location') or '').strip()
+        if not destination:
+            spec['missingFields'].append('location')
+        destination_country = payload.get('destinationCountry') or ''
         spec['city'] = destination
+        spec['location'] = destination
         spec['eventDestination'] = destination
-        event_bias = destination_country or None
-        spec['queries'] += [
-            {'key': 'events', 'kind': 'events', 'schema': 'event', 'num_results': 8,
-             'query': '%s events %s %s %s %s %s' % (topic, destination, destination_country, payload.get('dateFrom') or _month_year(), payload.get('dateTo') or '', ''),
-             'user_location': event_bias, 'forceRefresh': payload.get('forceRefresh',False),
-             'event_refinement': '%s %s %s official individual event detail tickets venue date %s' % (topic,destination,destination_country,payload.get('dateFrom') or _month_year()),
-             'summary_query': 'Return exactly ONE individual event per result at its own detail/booking page. Never return a roundup, directory or calendar as one event. Classify event_page_type and quote event_evidence. Extract one coherent name, venue, start/end dates, local times, price and description from that event only. For pages listing several unrelated events, mark event_listing and omit event facts instead of combining them. Find events matching this request: %s. Destination override: %s %s. Dates: %s to %s. Set location_match false for events in other destinations. Extract event dates/times, not article publication dates. Return end_date for date ranges and ongoing events, venue/city, explicit price text and real images if available. Never invent unknown schedules or ticket prices.' % (topic,destination,destination_country,payload.get('dateFrom') or 'upcoming',payload.get('dateTo') or 'unspecified')},
-            {'key': 'social', 'kind': 'social', 'schema': None,
-             'query': '%s %s %s recommendations' % (topic,destination,destination_country),
-             'include_domains': regions.SOCIAL[:3], 'num_results': 3, 'user_location': event_bias},
+        spec['interests'] = interests
+        date_hint = payload.get('dateFrom') or ('' if re.search(r'\b20\d{2}\b', topic) else str(datetime.now(timezone.utc).year))
+        admission = payload.get('admission') or 'any'
+        preferences = db.dumps({'request': topic, 'location': destination,
+            'dates': [payload.get('dateFrom'), payload.get('dateTo')], 'people': payload.get('people'),
+            'admission': admission, 'context': payload.get('context') or ''})
+        summary = (
+            'Find ONE specific event, learning session, workshop or actionable activity per page, '
+            'matching this complete request: '+preferences+'. '
+            'The specified location overrides any home city or unrelated location in general recommendations. '
+            'Set location_match true only for the requested location. Never substitute another city. '
+            'For a dedicated event/edition page set event_page_type=single_event; for one concrete ongoing '
+            'experience or attraction at a named location use activity. A holiday market, museum visit, '
+            'public skating session or workshop can be an activity idea when supported by its own source. '
+            'Directories, calendars, category pages and lists of unrelated events are event_listing and must '
+            'not become a combined event. Return coherent title, venue, city, dates/times, admission and '
+            'a useful source-grounded 3-5 sentence description of what people can actually do or learn. '
+            'Extract actual event dates rather than article publication dates, and note seasonal dates/opening '
+            'windows when known. Preserve unknown schedules, prices and capacity as unknown. '
+            'Classify admission as free, paid or unknown from explicit evidence; free-only requests need '
+            'confirmed free entry, not merely a free registration link. Consider group size for suitability '
+            'but never claim that enough tickets are available. Include a concrete activity_idea and '
+            'quote event_evidence. Do not invent events, schedules, pricing or group discounts.')
+        base = ' '.join(filter(None, [destination, topic, destination_country, date_hint, payload.get('dateTo') or '', ' '.join((payload.get('context') or '').split())[:120]]))
+        if admission == 'free':
+            base += ' free admission'
+        elif admission == 'paid':
+            base += ' entry tickets'
+        # Keep location first so query length limits cannot cut it off; full preferences also guide extraction.
+        batches = [
+            (base+' individual events official tickets venue schedule', None),
+            (base+' things to do seasonal experiences exhibitions markets tours official details', None),
+            (base+' workshops learning community meetups activities registration', None),
         ]
-        spec["interests"] = interests
+        learning = re.search(r'learn|learning|workshop|course|class|lecture|seminar|tech|science|developer|coding|\bai\b|luma|lu\.ma',
+                             ' '.join([topic, payload.get('context') or '', *interests]), re.I)
+        if learning:
+            batches.append((base+' learning workshop meetup registration', ['lu.ma', 'luma.com']))
+        for query, domains in batches:
+            spec['queries'].append({'key': 'events', 'kind': 'events', 'schema': 'event', 'num_results': 10,
+                'query': query, 'include_domains': domains, 'user_location': destination_country or None,
+                'forceRefresh': payload.get('forceRefresh', False), 'summary_query': summary,
+                'event_min_results': 5,
+                'event_refinement': base+' specific individual event or activity official detail booking page'})
 
     elif intent == "travel":
         dest, nights = extract_destination(q)
