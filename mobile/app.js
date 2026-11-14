@@ -257,38 +257,97 @@
        ========================================================= */
     var TASKS = [
         { deco: 'deco-star', tint: 'green', rot: [-1, 0.8], delay: 0, cls: '',
-          kicker: 'Safety', title: 'Daily check-in', sub: function () { return 'due by ' + S.checkin.nextHour + ':00'; }, label: 'Check in', doneLabel: 'Safe', href: '#/safety', auth: 'Confirm your daily check-in so your people know you\'re okay.' },
+          fn: 'safety', kicker: 'Safety', title: 'Daily check-in', sub: function () { return 'due by ' + S.checkin.nextHour + ':00'; }, label: 'Check in', doneLabel: 'Safe', href: '#/safety', auth: 'Confirm your daily check-in so your people know you\'re okay.' },
         { deco: 'deco-red-ball', tint: 'peach', rot: [1.2, -0.6], delay: .5, cls: 'mt-8',
-          kicker: 'Organiser', title: 'Grocery run', sub: function () { return fmtH(S.groceryTrip.start) + ' · REDI mall'; }, label: 'Done', doneLabel: 'Shopped', href: '#/shopping' },
+          fn: 'shopping', kicker: 'Organiser', title: 'Grocery run', sub: function () { return fmtH(S.groceryTrip.start) + ' · REDI mall'; }, label: 'Done', doneLabel: 'Shopped', href: '#/shopping' },
         { deco: 'deco-garland', tint: 'lavender', rot: [-0.8, 1], delay: .2, cls: '-mt-4',
-          kicker: 'Organiser', title: 'Book laundry slot', sub: function () { return 'clean clothes: ' + minRunway() + ' days left'; }, label: 'Done', doneLabel: 'Booked', href: '#/laundry' },
+          fn: 'laundry', kicker: 'Organiser', title: 'Book laundry slot', sub: function () { return 'clean clothes: ' + minRunway() + ' days left'; }, label: 'Done', doneLabel: 'Booked', href: '#/laundry' },
         { deco: 'deco-cane', tint: 'peach', rot: [-1.2, 0.6], delay: .3, cls: '',
-          kicker: 'Health', title: '20-min daylight walk', sub: function () { return 'sleep\'s been short'; }, label: 'Done', doneLabel: 'Walked', href: '#/health' },
+          fn: 'health', kicker: 'Health', title: '20-min daylight walk', sub: function () { return 'sleep\'s been short'; }, label: 'Done', doneLabel: 'Walked', href: '#/health' },
         { deco: 'deco-orange-ball', tint: 'lavender', rot: [1, -1], delay: 1, cls: 'mt-12',
-          kicker: 'Treat yourself', title: 'Jazz trio, Fri 22:00', sub: function () { return 'free · 600 m away'; }, label: 'Save', doneLabel: 'Saved', href: '#/explore' }
+          fn: 'explore', kicker: 'Treat yourself', title: 'Jazz trio, Fri 22:00', sub: function () { return 'free · 600 m away'; }, label: 'Save', doneLabel: 'Saved', href: '#/explore' }
     ];
+
+    /* Functions the user can switch on/off. An inactive function is paused:
+       its cards leave Today (and the decoration count) and its Home card says so. */
+    var FUNCTIONS = [
+        { id: 'shopping', name: 'Shopping lists' },
+        { id: 'laundry', name: 'Laundry plans' },
+        { id: 'explore', name: 'Events & travels' },
+        { id: 'chat', name: 'ChatWithMe' },
+        { id: 'health', name: 'Health' },
+        { id: 'safety', name: 'Safety' }
+    ];
+    if (!S.fnOff || typeof S.fnOff !== 'object') S.fnOff = {};
+    function fnActive(id) { return !S.fnOff[id]; }
+    function activeTasks() { return TASKS.filter(function (t) { return !t.fn || fnActive(t.fn); }); }
+    function fnSwitch(f) {
+        return '<label class="switch"><input type="checkbox" data-fn="' + f.id + '"' + (fnActive(f.id) ? ' checked' : '') +
+            ' aria-label="' + esc(f.name) + ' active"><span class="track"></span></label>';
+    }
+    function setFunction(id, on) {
+        var f = FUNCTIONS.filter(function (x) { return x.id === id; })[0];
+        if (!f || fnActive(id) === on) return;
+        if (on) delete S.fnOff[id]; else S.fnOff[id] = true;
+        save();
+        applyFunctions();
+        toast(f.name + (on ? ' is active again' : ' paused. Its cards are hidden from Today') + (id === 'safety' && !on ? '. SOS still works' : ''));
+    }
+    function applyFunctions() {
+        FUNCTIONS.forEach(function (f) {
+            var on = fnActive(f.id);
+            var card = $('#screen-home .card-grid a.tool-card[href="#/' + f.id + '"]');
+            if (card) {
+                card.classList.toggle('fn-off', !on);
+                var tag = $('.fn-paused', card);
+                if (!on && !tag) { tag = document.createElement('span'); tag.className = 'fn-paused'; tag.textContent = 'Paused'; card.appendChild(tag); }
+                if (on && tag) card.removeChild(tag);
+            }
+            $$('input[data-fn="' + f.id + '"]').forEach(function (inp) { inp.checked = on; });
+            $$('[data-fn-state="' + f.id + '"]').forEach(function (el) { el.textContent = on ? 'Active' : 'Paused'; });
+        });
+        renderToday();
+    }
+    // A switch at the top of each function's own screen.
+    FUNCTIONS.forEach(function (f) {
+        var head = $('#screen-' + f.id + ' .page-head');
+        if (!head) return;
+        var row = document.createElement('div');
+        row.className = 'fn-toggle';
+        row.innerHTML = '<span class="fn-toggle-label">Function <b data-fn-state="' + f.id + '">' + (fnActive(f.id) ? 'Active' : 'Paused') + '</b></span>' + fnSwitch(f);
+        head.appendChild(row);
+    });
+    document.addEventListener('change', function (e) {
+        var inp = e.target;
+        if (inp && inp.matches && inp.matches('input[data-fn]')) setFunction(inp.dataset.fn, inp.checked);
+    });
 
     function renderToday() {
         var d = now;
         $('#today-date').textContent = DAYS[d.getDay()] + ', ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
-        var n = TASKS.filter(function (t) { return S.today.done[t.deco]; }).length;
-        $('#today-progress').innerHTML = n + ' / ' + TASKS.length + ' <small>decorations hung</small>';
-        $('#tree-done').hidden = n < TASKS.length;
+        var tasks = activeTasks();
+        var n = tasks.filter(function (t) { return S.today.done[t.deco]; }).length;
+        $('#today-progress').innerHTML = n + ' / ' + tasks.length + ' <small>decorations hung</small>';
+        $('#tree-done').hidden = !tasks.length || n < tasks.length;
+        var paused = FUNCTIONS.filter(function (f) { return !fnActive(f.id); });
 
         var wrap = $('#today-cards');
-        wrap.innerHTML = TASKS.map(function (t, i) {
+        wrap.innerHTML = tasks.map(function (t) {
+            var i = TASKS.indexOf(t);
             var done = !!S.today.done[t.deco];
             return '<div class="tool-card plain-card tint-' + t.tint + ' ' + t.cls + '" style="--rot-start:' + t.rot[0] + 'deg;--rot-end:' + t.rot[1] + 'deg;animation-delay:' + t.delay + 's;--i:' + i + ';">' +
                 '<a class="task-body" href="' + t.href + '"><span class="task-kicker">' + esc(t.kicker) + '</span><span class="task-title">' + esc(t.title) + '</span><span class="task-sub">' + esc(t.sub()) + '</span></a>' +
                 '<button class="deco-btn' + (done ? ' done' : '') + '" type="button" data-i="' + i + '"' + (done ? ' disabled' : '') + ' aria-label="' + esc(t.title) + ': mark done and hang a decoration">' +
                 I.plus.replace('<svg', '<svg class="icon-plus"') + I.check.replace('<svg', '<svg class="icon-check"') +
                 '<span class="deco-btn-label">' + esc(done ? t.doneLabel : t.label) + '</span></button></div>';
-        }).join('');
+        }).join('') + (paused.length ? '<p class="fn-paused-note">' + (tasks.length ? '' : 'Nothing planned today. ') + 'Paused: ' +
+            paused.map(function (f) { return esc(f.name); }).join(', ') + '. <a href="#/me">Manage functions</a></p>' : '');
 
         TASKS.forEach(function (t) {
             var el = document.getElementById(t.deco);
-            if (S.today.done[t.deco] && !el.classList.contains('hung')) el.classList.add('hung', 'instant');
-            if (!S.today.done[t.deco]) el.classList.remove('hung', 'instant');
+            var show = S.today.done[t.deco] && tasks.indexOf(t) !== -1;   // a paused function takes its decoration down too
+            if (show && !el.classList.contains('hung')) el.classList.add('hung', 'instant');
+            if (!show) el.classList.remove('hung', 'instant');
         });
 
         $$('.deco-btn', wrap).forEach(function (b) {
@@ -310,10 +369,11 @@
         var needsScroll = window.scrollY > 24;
         if (needsScroll) window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
         setTimeout(function () { el.classList.add('hung'); }, needsScroll && !reduce ? 550 : 0);
-        var n = TASKS.filter(function (x) { return S.today.done[x.deco]; }).length;
-        $('#today-progress').innerHTML = n + ' / ' + TASKS.length + ' <small>decorations hung</small>';
-        $('#tree-done').hidden = n < TASKS.length;
-        if (n === TASKS.length) setTimeout(function () { toast('Your tree is complete! 🎄'); }, 900);
+        var tasks = activeTasks();
+        var n = tasks.filter(function (x) { return S.today.done[x.deco]; }).length;
+        $('#today-progress').innerHTML = n + ' / ' + tasks.length + ' <small>decorations hung</small>';
+        $('#tree-done').hidden = n < tasks.length;
+        if (n === tasks.length) setTimeout(function () { toast('Your tree is complete! 🎄'); }, 900);
     }
     function markTaskByDeco(deco) { S.today.done[deco] = true; save(); }
 
@@ -1279,6 +1339,11 @@
        ========================================================= */
     function renderMe() {
         $('#me-name').textContent = S.user.name;
+        $('#fn-panel').innerHTML = '<p class="small muted" style="margin-bottom:10px">Pause a function you don\'t need. Its cards leave your Today plan until you switch it back on.</p>' +
+            '<ul class="list">' + FUNCTIONS.map(function (f) {
+                return '<li><div class="grow"><div class="item-title">' + esc(f.name) + '</div><div class="item-sub" data-fn-state="' + f.id + '">' +
+                    (fnActive(f.id) ? 'Active' : 'Paused') + '</div></div>' + fnSwitch(f) + '</li>';
+            }).join('') + '</ul>';
         // memories
         $('#mem-panel').innerHTML =
             '<div class="row between"><div><div class="item-title">Let Sola remember things</div><div class="item-sub">Used to find events, products and chat better</div></div><label class="switch"><input type="checkbox" id="mem-sw"' + (S.memoryConsent ? ' checked' : '') + ' aria-label="Memory"><span class="track"></span></label></div>' +
@@ -1337,5 +1402,6 @@
     });
 
     /* ---------------- Boot ---------------- */
+    applyFunctions();
     route();
 })();

@@ -718,3 +718,14 @@ body.decorating .today-meta { max-height: 160px; opacity: 1; transition-delay: .
     *, *::before, *::after { animation-duration: .01s !important; animation-iteration-count: 1 !important; transition-duration: .01s !important; transition-delay: 0s !important; }
     .deco.hung { animation-duration: .01s; }
 }
+
+/* ---------- Function on/off (Me, each function screen, Home, Today) ---------- */
+.fn-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 10px 14px; border-radius: 16px; background: rgba(255,255,255,.6); border: 1px solid rgba(0,0,0,.06); }
+.fn-toggle-label { font-size: .9rem; color: var(--muted, #6b6b63); }
+.fn-toggle-label b { color: var(--ink, #2b2b26); margin-left: 4px; }
+.tool-card.fn-off { opacity: .55; filter: grayscale(.6); }
+.fn-paused { position: absolute; top: 10px; right: 10px; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: #dcddd4; color: #4a4a43; }
+.fn-paused-note { grid-column: 1 / -1; font-size: .85rem; color: var(--muted, #6b6b63); margin: 6px 4px 0; }
+.fn-paused-note a { color: inherit; text-decoration: underline; }
+#fn-panel .list li { display: flex; align-items: center; gap: 12px; }
+.tool-card.fn-off .card-alert { display: none; }
