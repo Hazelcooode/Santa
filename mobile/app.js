@@ -262,8 +262,6 @@
           kicker: 'Organiser', title: 'Grocery run', sub: function () { return fmtH(S.groceryTrip.start) + ' · REDI mall'; }, label: 'Done', doneLabel: 'Shopped', href: '#/shopping' },
         { deco: 'deco-garland', tint: 'lavender', rot: [-0.8, 1], delay: .2, cls: '-mt-4',
           kicker: 'Organiser', title: 'Book laundry slot', sub: function () { return 'clean clothes: ' + minRunway() + ' days left'; }, label: 'Done', doneLabel: 'Booked', href: '#/laundry' },
-        { deco: 'deco-bell', tint: 'green', rot: [0.8, -1.2], delay: .8, cls: 'mt-4',
-          kicker: 'Companion', title: 'Catch up with Sola', sub: function () { return 'how was your day?'; }, label: 'Chatted', doneLabel: 'Chatted', href: '#/chat' },
         { deco: 'deco-cane', tint: 'peach', rot: [-1.2, 0.6], delay: .3, cls: '',
           kicker: 'Health', title: '20-min daylight walk', sub: function () { return 'sleep\'s been short'; }, label: 'Done', doneLabel: 'Walked', href: '#/health' },
         { deco: 'deco-orange-ball', tint: 'lavender', rot: [1, -1], delay: 1, cls: 'mt-12',
@@ -982,7 +980,6 @@
                     S.chat.push(note); save();
                     setTimeout(function () { log.appendChild(bubble(note)); scrollChat(); }, 500);
                 }
-                markTaskByDeco('deco-bell');
             })
             .catch(function () { typing.remove(); pushBot({ text: 'Oops, lost my connection for a sec. Say that again?' }); });
     }
@@ -1010,7 +1007,7 @@
                         }, 1000);
                     }, 1200);
                 },
-                function () { clearInterval(iv); markTaskByDeco('deco-bell'); });
+                function () { clearInterval(iv); });
         });
     });
     function openSocialSheet() {
