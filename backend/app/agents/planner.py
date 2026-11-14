@@ -6,10 +6,12 @@ it. When the Researcher had no live data, the demo fixtures are used and the
 response is labelled mode="demo"."""
 import hashlib
 import re
+import math
 from datetime import date
 
 from .. import db, mock_data, regions
-from ..exa_client import domain_of, sources_from
+from ..exa_client import domain_of, sources_from, safe_url
+from ..services.price_evidence import quote
 
 ART_KEYS = [("jazz", "jazz"), ("music", "jazz"), ("concert", "jazz"), ("club", "jazz"), ("climb", "climb"), ("boulder", "climb"),
             ("hike", "climb"), ("sport", "climb"), ("market", "market"), ("christmas", "market"), ("food", "market"),
@@ -36,7 +38,7 @@ def _summary(c):
 def _num(v):
     try:
         f = float(v)
-        return f if f > 0 else None
+        return f if f > 0 and math.isfinite(f) else None
     except (TypeError, ValueError):
         return None
 
@@ -59,6 +61,9 @@ STRATEGY_NOTES = {
 
 
 def user_stores(user):
+    config = db.get_state(user["id"], "shopping_settings")
+    if config and config.get("domains"):
+        return [{"id": d, "name": regions.retailer_name(d), "domain": d, "url": "https://"+d, "mall": None, "dist": None} for d in config["domains"]]
     stores = db.get_state(user["id"], "stores")
     if stores:
         return stores
@@ -79,6 +84,10 @@ def _choose(items, matrix, stores, strategy):
         opts = [(p, sid) for sid, p in matrix.get(item["id"], {}).items() if sid in allowed]
         return min(opts) if opts else None
 
+    if strategy == "nearest" and not any(s.get("dist") is not None for s in stores):
+        return [], items, "Distances are unknown. Choose lowest known prices or one store instead."
+    if strategy == "mall" and not any(s.get("mall") for s in stores):
+        return [], items, "Shopping-centre membership is unknown. Choose one store or lowest known prices."
     if strategy == "single" or strategy == "nearest":
         if strategy == "nearest":
             ranked = sorted(stores, key=lambda s: (s.get("dist") is None, s.get("dist") or 0))
@@ -182,20 +191,34 @@ def plan_groceries(user, spec, bundle):
     by_domain = {}
     for s in stores:
         by_domain.setdefault(s.get("domain") or domain_of(s.get("url", "")), []).append(s)
-    matrix, used_sources = {}, []
+    matrix, used_sources, price_offers, diagnostics = {}, [], {}, []
     for it in items:
-        name_tokens = _tokens(it["name"]) - {"pack", "bag"}
         for c in bundle["candidates"]:
             if c["key"] != it["id"] and c["key"] != it["name"]:
                 continue
-            s = _summary(c)
-            price = _num(s.get("price"))
-            cur = (s.get("currency") or "EUR").upper()
-            if price is None or price > 150 or cur not in ("EUR", "€", regions.currency(user)):
+            allowed = regions.grocery_domains(user)
+            if allowed and not any(c["domain"] == d or c["domain"].endswith("."+d) for d in allowed):
                 continue
-            title_tokens = _tokens(s.get("product") or c["title"])
-            if name_tokens and not (name_tokens & title_tokens):
-                continue  # page is about a different product
+            s = _summary(c)
+            def reject(reason):
+                diagnostics.append({'itemId': it['id'], 'item': it['name'], 'url': c['url'], 'reason': reason})
+            if s.get('page_type') in ('category', 'search', 'article'):
+                reject('Category/search/article page, not an individual product offer.')
+                continue
+            minor, price_reason = quote(s, regions.currency(user), package=True)
+            if price_reason:
+                reject(price_reason)
+                continue
+            price = minor / 100
+            from ..services.shopping_prices import match_failure
+            failure=match_failure(dict(it,_strict=True),c)
+            if failure:
+                reject(failure)
+                continue
+            price_offers.setdefault(it["id"], []).append({"priceMinor": minor, "priceBasis": s.get("price_basis"), "currency": regions.currency(user),
+                "store": s.get("store") or regions.retailer_name(c["domain"]), "url": c["url"], "product": s.get("product") or c["title"],
+                "image": next((u for u in [c.get("image")]+(s.get("image_urls") or []) if safe_url(u)),None),
+                "fetchedAt": c.get("fetchedAt") or db.iso(), "cached": c.get("cached", False), "evidence": (str(s.get("price_text") or "") + " (" + str(s.get("price_basis") or "") + ") " + (s.get("match_evidence") or " ".join(c.get("highlights") or [])))[:500]})
             dom = c["domain"]
             targets = by_domain.get(dom)
             if not targets:
@@ -208,7 +231,15 @@ def plan_groceries(user, spec, bundle):
                 if prev is None or price < prev:
                     matrix[it["id"]][st["id"]] = round(price, 2)
             used_sources.append({"title": (s.get("product") or c["title"])[:90] + " · " + dom, "url": c["url"]})
-    res = _deals_payload(items, matrix, stores, strategy, sources_from(used_sources, 8) or sources_from(bundle["sources"]), "live")
+    res = _deals_payload(items, matrix, stores, strategy, sources_from(used_sources, 8), "live")
+    for it in items:
+        if not any(c.get('key') in (it['id'], it['name']) for c in bundle['candidates']):
+            diagnostics.append({'itemId': it['id'], 'item': it['name'], 'reason': 'No product pages returned by the selected websites.'})
+    res['storeCoverage'] = bundle.get('lookups', [])
+    res['diagnostics'] = diagnostics[:100]
+    res['inspectedSources'] = sources_from(bundle['sources'], 16)
+    res["priceOffers"] = price_offers
+    res["currency"] = regions.currency(user)
     if not matrix:
         res["note"] = "I couldn't find reliable online prices for these items right now. " + res["note"]
     return res
@@ -251,15 +282,25 @@ def plan_events(user, spec, bundle):
 
     posts = _posts(bundle)
     today = date.today().isoformat()
-    results, seen = [], set()
+    results, seen, diagnostics = [], set(), []
     for c in bundle["candidates"]:
         if c["key"] != "events":
             continue
         s = _summary(c)
+        if s.get('event_page_type') != 'single_event':
+            diagnostics.append({'url':c['url'],'reason':'This is a listing, article or unverified event page. Only individual event detail pages are shown.'})
+            continue
         title = (s.get("title") or c["title"]).strip()
         if not title or title.lower() in seen:
             continue
-        if (s.get("start_date") or "9999") < today:
+        if q and s.get('location_match') is not True:
+            continue
+        event_end = s.get('end_date') or s.get('start_date') or '9999'
+        if spec['payload'].get('dateFrom') and event_end < spec['payload']['dateFrom']:
+            continue
+        if spec['payload'].get('dateTo') and (s.get('start_date') or '') > spec['payload']['dateTo']:
+            continue
+        if event_end < today:
             continue  # already happened
         seen.add(title.lower())
         where = ", ".join(x for x in (s.get("venue"), s.get("city")) if x) or spec.get("city") or ""
@@ -267,13 +308,17 @@ def plan_events(user, spec, bundle):
         results.append({
             "id": "ev_" + hashlib.sha1(c["url"].encode()).hexdigest()[:10],
             "title": title[:120], "when": s.get("date_text") or "See listing", "where": where[:80],
+            "startDate": s.get('start_date') or '', "endDate": s.get('end_date') or s.get('start_date') or '',
+            "startTime": s.get('start_time') or '', "endTime": s.get('end_time') or '', "city": s.get('city') or '', "country": s.get('country') or '',
             "price": s.get("price_text") or "See source", "tags": [t for t in [s.get("category")] if t],
             "why": _why(text, interests, q), "summary": s.get("summary") or (c["highlights"] or [""])[0][:200],
             "art": _art_for(text), "images": [c["image"]] if c.get("image") else [],
             "posts": posts[:1], "sources": [{"title": c["title"][:90], "url": c["url"]}] + [{"title": "Social post", "url": p["url"]} for p in posts[:1]],
-            "url": c["url"],
+            "url": c["url"], "eventPageType":"single_event", "evidence":s.get("event_evidence") or "",
         })
-    return {"results": results[:6], "query": q, "summary": "%d live events" % len(results[:6])}
+    return {"results": results[:8], "query": q, "diagnostics":diagnostics[:20],
+            "notice":"Individual event detail pages only. Dates, prices and availability are source claims; review the original source.",
+            "summary": "%d individual events" % len(results[:8])}
 
 
 # --------------------------------------------------------------------- travel
@@ -458,13 +503,38 @@ def plan_interests(user, spec, bundle):
 
 # ---------------------------------------------------------------------- watch
 def plan_watch(user, spec, bundle):
-    offers = []
+    offers, diagnostics = [], []
     for c in bundle["candidates"]:
         s = _summary(c)
-        p = _num(s.get("price"))
-        if p:
-            offers.append({"title": (s.get("title") or c["title"])[:100], "priceMinor": int(round(p * 100)),
-                           "currency": s.get("currency") or regions.currency(user), "store": s.get("store") or c["domain"],
-                           "url": c["url"]})
+        minor, price_reason = quote(s, regions.currency(user))
+        title = (s.get("title") or c["title"])[:100]
+        from ..services.shopping_prices import matches
+        required = spec["payload"].get("details") or ""
+        if spec["payload"].get("mode") == "exact":
+            required = spec["payload"]["query"] + " " + required
+        candidate = dict(c, summary=dict(s, product=title))
+        allowed = spec['payload'].get('sites') or []
+        if allowed and not any(c['domain'] == d or c['domain'].endswith('.'+d) for d in allowed):
+            reason = 'Source is outside your selected websites.'
+        elif s.get('page_type') in ('category', 'search', 'article'):
+            reason = 'Category/search/article page, not an individual product offer.'
+        elif price_reason:
+            reason = price_reason
+        elif s.get('availability') != 'in_stock' or not s.get('availability_evidence'):
+            reason = 'This exact option is not confirmed available to buy now.'
+        elif not matches({'name': spec['payload']['query'], 'details': required}, candidate):
+            reason = 'Product type or required specifications did not match, or could not be verified.'
+        else:
+            reason = None
+        if reason:
+            diagnostics.append({'url': c['url'], 'title': title, 'reason': reason})
+        else:
+            offers.append({"title": title, "priceMinor": minor,
+                           "currency": regions.currency(user), "store": s.get("store") or c["domain"],
+                           "url": c["url"], "availability": "in_stock", "availabilityEvidence": s.get("availability_evidence"), "priceText": s.get("price_text"), "priceBasis": s.get("price_basis"),
+                           "images": list(dict.fromkeys([u for u in ([c.get("image")] + (s.get("image_urls") or [])) if safe_url(u)]))[:12],
+                           "evidence": s.get("match_evidence") or ""})
     offers.sort(key=lambda o: o["priceMinor"])
-    return {"offers": offers, "summary": "%d offers" % len(offers)}
+    return {"offers": offers, "diagnostics": diagnostics[:20], "inspectedSources": sources_from(bundle['sources'], 16),
+            "notice": 'Found matching price quotes.' if offers else 'No verified matching price found. History records successful quotes only; category pages, missing prices and unsupported requirements are excluded.',
+            "summary": "%d offers" % len(offers)}

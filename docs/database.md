@@ -1,3 +1,5 @@
+> Runtime update: SQLite in `backend/data/taimi.sqlite3` is the current database; PostgreSQL below is a proposal. Actual schema is in `backend/app/db.py`, with additive migrations for brand/details/attributes, shopping_quotes and shopping_refreshes. Quotes bind to user, exact identity and explicit search context. No database server is needed.
+
 # Database structure
 
 Proposed PostgreSQL schema; this specification is not a migration and no database is provisioned. Use UUID primary keys, `timestamptz` in UTC, `created_at` and `updated_at` on mutable tables. Application timezone is an IANA value such as `Europe/Helsinki`, used for display and recurrence evaluation.
@@ -77,3 +79,8 @@ Create proposal revision and invalidate the old revision in one transaction. App
 ## Product and price-watch extension
 
 See [Price watch database additions](price-watch.md#proposed-database-additions) for canonical products/variants, seller offers, append-only price observations, user-owned watches, scheduled checks and deduplicated alerts. These additions are not yet migrations.
+
+
+## Current saved research and itinerary storage
+
+SQLite now also creates `research_searches(id,user_id,query,kind,payload,created_at)` and `saved_itineraries(id,user_id,payload,created_at,updated_at)` with user/time indexes. Their JSON snapshots preserve source event dates/times, price text, image URLs and generated media. Price watch JSON preserves lastOffers, savedOptions and pricingVersion; existing price_observations now store all qualifying options per check (up to ten), not just the best. New grocery context hashes include pricingVersion=2 so old, unvalidated quotes do not silently reappear. Historical rows are retained; they are not blindly rescaled. Generated assets remain in media_assets. See [the workflow](media-and-trips.md).

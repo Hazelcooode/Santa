@@ -134,6 +134,8 @@ def require_verification(user, verification):
             return "password"
         raise ApiError(403, "VERIFICATION_FAILED", "That password didn't match.")
     if method in ("fingerprint", "face", "device"):
+        if settings.environment == "production":
+            raise ApiError(403,"VERIFICATION_REQUIRED","Biometric verification is a demo. Use your account password in this release.")
         challenge = verification.get("challenge", "")
         pending = db.get_state(user["id"], "auth_challenges", [])
         now = db.now()

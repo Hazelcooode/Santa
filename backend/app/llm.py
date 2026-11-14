@@ -42,11 +42,11 @@ def complete(system, turns, want_json=False, image_data_url=None, max_tokens=400
         body["generationConfig"]["responseMimeType"] = "application/json"
     url = "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent" % settings.gemini_model
     try:
-        r = httpx.post(url, params={"key": settings.gemini_api_key}, json=body, timeout=20)
+        r = httpx.post(url, headers={"x-goog-api-key": settings.gemini_api_key}, json=body, timeout=20)
         r.raise_for_status()
         text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
     except Exception as e:  # network, quota, safety block...
-        log.warning("LLM call failed: %s", e)
+        log.warning("LLM call failed (%s); inspect provider status without logging credentials.", type(e).__name__)
         return None
     if want_json:
         try:

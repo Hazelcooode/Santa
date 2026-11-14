@@ -1,3 +1,5 @@
+> Current runtime: Python/FastAPI + SQLite now exists. Start with [local testing](local-testing.md), [use cases](use-cases.md), [API index](api-route-index.md) and [deployment](deployment.md). Planning choices below are historical specifications.
+
 # Implementation documentation
 
 These files describe the intended product and how to implement it. The root README is the source of truth for what currently runs. No backend or model integration exists yet.
@@ -27,3 +29,12 @@ These files describe the intended product and how to implement it. The root READ
 - **Approval:** user confirmation binds to a specific immutable proposal version. Any material change invalidates approval.
 
 Provider documentation was reviewed on **14 November 2026**. Recheck exact model availability, API fields and pricing before implementation; use the primary links in the agent and feature specifications.
+
+
+- [Current package-price, saved trip and Cloudinary workflow](media-and-trips.md): implemented controls, configuration, limitations and a jury walkthrough.
+
+
+Current UI: see [the screenshot-based redesign](ui-redesign.md) for shared layouts, static/connected modes, individual-event filtering and itinerary exports.
+
+
+Latest behaviour: [manual grocery pricing, strict attributes, temporary research and named lists](current-behavior.md). This supersedes earlier automatic-lookup and restored-research descriptions.

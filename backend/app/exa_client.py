@@ -18,6 +18,7 @@ Cost-control practices (we have one $50 credit):
 import hashlib
 import json
 import logging
+import re
 import threading
 import time
 from datetime import timedelta
@@ -147,15 +148,36 @@ def _cache_put(key, kind, payload):
     )
 
 
+def _provider_status(error):
+    response = getattr(error, "response", None)
+    status = getattr(response, "status_code", None) or getattr(error, "status_code", None)
+    if status is not None:
+        return int(status)
+    match = re.search(r"(?:status code|HTTP)\s*[:=]?\s*(\d{3})\b", str(error), re.I)
+    return int(match.group(1)) if match else None
+
+
+def _provider_failure(error):
+    status = _provider_status(error)
+    if status == 400:
+        return "EXA_INVALID_REQUEST", "Exa rejected the search request (HTTP 400). The request/schema needs correcting; existing prices were not changed.", False
+    if status in (401, 403):
+        return "EXA_AUTH_FAILED", "Exa authentication or account access failed. Check the configured API key and permissions.", False
+    if status == 429:
+        return "EXA_RATE_LIMITED", "Exa rate limit reached. Wait before updating prices again.", True
+    return "LIVE_RESEARCH_UNAVAILABLE", "Exa could not complete this search. Existing quotes were retained; retry later.", True
+
+
 def _with_retries(fn):
     delay = 0.8
     for attempt in range(3):
         try:
             return fn()
         except Exception as e:  # SDK raises ValueError / httpx errors with status in text
-            msg = str(e)
-            retryable = any(t in msg for t in ("429", "500", "502", "503", "504", "timed out", "Timeout"))
-            if "401" in msg or "403" in msg or not retryable or attempt == 2:
+            status = _provider_status(e)
+            msg = str(e).lower()
+            retryable = status in (429, 500, 502, 503, 504) if status else any(t in msg for t in ("timed out", "timeout"))
+            if not retryable or attempt == 2:
                 raise
             time.sleep(delay)
             delay *= 2
@@ -190,9 +212,9 @@ def _normalise_result(r):
 
 def search(user_id, kind, query, *, num_results=5, include_domains=None, exclude_domains=None,
            user_location=None, start_published_date=None, summary_query=None, summary_schema=None,
-           category=None, search_type="auto"):
+           category=None, search_type="auto", force_refresh=False):
     """Returns {"available": bool, "results": [...], "source": live|cache|none, "reason": str?, "costUsd": float}."""
-    num_results = max(1, min(int(num_results), 8))
+    num_results = max(1, min(int(num_results), 10))
     body = {
         "q": " ".join(query.split())[:400], "n": num_results,
         "inc": sorted(include_domains or [])[:20], "exc": sorted(exclude_domains or [])[:20],
@@ -201,25 +223,27 @@ def search(user_id, kind, query, *, num_results=5, include_domains=None, exclude
     }
     key = "search:" + hashlib.sha256(db.dumps(body).encode()).hexdigest()
 
-    cached = _cache_get(key)
+    cached = None if force_refresh else _cache_get(key)
     if cached is not None:
         _ledger(user_id, kind, query, 0, False, True)
-        return {"available": True, "results": cached, "source": "cache", "costUsd": 0}
+        return {"available": True, "results": cached, "source": "cache", "costUsd": 0, "fetchedAt": db.q1("SELECT created_at FROM exa_cache WHERE key=?", (key,))["created_at"]}
 
     mode = effective_mode()
     if mode != "live":
         return {"available": False, "results": [], "source": "none", "reason": mode, "costUsd": 0}
 
     with _lock_for(key):
-        cached = _cache_get(key)  # another request may have filled it while we waited
+        cached = None if force_refresh else _cache_get(key)  # another request may have filled it while we waited
         if cached is not None:
             _ledger(user_id, kind, query, 0, False, True)
-            return {"available": True, "results": cached, "source": "cache", "costUsd": 0}
+            return {"available": True, "results": cached, "source": "cache", "costUsd": 0, "fetchedAt": db.q1("SELECT created_at FROM exa_cache WHERE key=?", (key,))["created_at"]}
         reason = _budget_ok(user_id)
         if reason:
             return {"available": False, "results": [], "source": "none", "reason": reason, "costUsd": 0}
 
         contents = {"highlights": True}
+        if force_refresh:
+            contents["max_age_hours"] = 0
         if summary_query or summary_schema:
             contents["summary"] = {k: v for k, v in (("query", summary_query), ("schema", summary_schema)) if v}
         kwargs = dict(num_results=num_results, contents=contents, type=search_type,
@@ -239,7 +263,8 @@ def search(user_id, kind, query, *, num_results=5, include_domains=None, exclude
         except Exception as e:
             log.warning("Exa search failed (%s): %s", kind, e)
             _ledger(user_id, kind, query, 0, True, False, status="error")
-            return {"available": False, "results": [], "source": "none", "reason": "search provider error", "costUsd": 0}
+            code, reason, retryable = _provider_failure(e)
+            return {"available": False, "results": [], "source": "none", "reason": reason, "errorCode": code, "retryable": retryable, "costUsd": 0}
 
         results = [x for x in (_normalise_result(r) for r in resp.results) if x]
         cost = getattr(getattr(resp, "cost_dollars", None), "total", None)
@@ -248,7 +273,7 @@ def search(user_id, kind, query, *, num_results=5, include_domains=None, exclude
             cost = settings.exa_est_search_usd + settings.exa_est_page_usd * len(results) * (2 if "summary" in contents else 1)
         _ledger(user_id, kind, query, float(cost), estimated, False)
         _cache_put(key, kind, results)
-        return {"available": True, "results": results, "source": "live", "costUsd": float(cost)}
+        return {"available": True, "results": results, "source": "live", "costUsd": float(cost), "fetchedAt": db.iso()}
 
 
 def answer(user_id, query, user_location=None):

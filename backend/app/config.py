@@ -31,6 +31,11 @@ def _int(name, default):
 
 class Settings:
     app_name = "Taimi"
+    environment = os.getenv("APP_ENV", "development")
+    data_mode = os.getenv("DATA_MODE", "live")
+    seed_demo_account = os.getenv("SEED_DEMO_ACCOUNT", "0") == "1"
+    auto_price_lookup = os.getenv("AUTO_PRICE_LOOKUP", "0") == "1"
+    allowed_hosts = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,testserver").split(",") if h.strip()]
     agent_name = os.getenv("AGENT_NAME", "Taimi")
     db_path = os.getenv("TAIMI_DB", str(BACKEND_DIR / "data" / "taimi.sqlite3"))
     session_days = _int("SESSION_DAYS", 14)

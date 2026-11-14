@@ -9,7 +9,7 @@
     "start": "node scripts/serve.mjs",
     "build": "node scripts/build.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check src/app.js && node --check src/art.js && node --check src/model.js && node --check src/price-model.js && node --check src/price-watch.js && node --check scripts/serve.mjs"
+    "check": "node --check src/app.js && node --check src/art.js && node --check src/model.js && node --check src/price-model.js && node --check src/price-watch.js && node --check src/api-client.js && node --check src/ui.js && node --check src/preview-api.js && node --check src/search-scope.js && node --check src/live-shopping.js && node --check src/live-watches.js && node --check src/live-discovery.js && node --check src/integrations.js && node --check mobile/app.js && node --check mobile/data.js && node --check scripts/serve.mjs"
   },
   "engines": { "node": ">=20" }
 }

@@ -36,7 +36,7 @@ def tick():
         if u:
             u["preferred_domains"] = db.loads(u.get("preferred_domains"), [])
             try:
-                watches.check(u, w["id"])
+                watches.check(u, w["id"], automatic=True)
             except Exception:
                 log.exception("watch check failed")
 
@@ -52,6 +52,7 @@ def _loop():
 def start():
     if not settings.scheduler_enabled:
         return
+    _stop.clear()
     t = threading.Thread(target=_loop, name="taimi-scheduler", daemon=True)
     t.start()
 

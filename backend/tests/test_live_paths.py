@@ -10,6 +10,10 @@ from app.config import settings
 
 
 def R(url, title, summary=None, highlights=None, image=None):
+    if summary and summary.get('price'):
+        summary=dict(summary,price_text=format(summary['price'],'.2f'),price_basis='package',availability='in_stock',availability_evidence='In stock')
+    if summary and summary.get('start_date'):
+        summary=dict(summary,location_match=True,event_page_type="single_event")
     return SimpleNamespace(url=url, title=title, published_date=None, image=image, favicon=None,
                            highlights=highlights or ["snippet about " + title], summary=json.dumps(summary) if summary else None)
 
@@ -25,7 +29,7 @@ class FakeExa:
             res = [R("https://www.s-kaupat.fi/tuote/oat", "Oat drink 1L", {"product": "Oat milk drink 1 l", "price": 1.65, "currency": "EUR"}),
                    R("https://www.lidl.fi/p/oat", "Oat drink", {"product": "Oat milk 1 L", "price": 1.39, "currency": "EUR"}),
                    R("https://www.k-ruoka.fi/x", "Cheese", {"product": "Edam cheese", "price": 0.5, "currency": "EUR"})]
-        elif "events in" in q:
+        elif " events " in q:
             res = [R("https://venue.example/jazz", "Jazz night", {"title": "Jazz Night at Storyville", "date_text": "Sat 21 Nov 21:00",
                      "start_date": "2099-11-21", "venue": "Storyville", "city": "Helsinki", "price_text": "€15", "category": "jazz"},
                      image="https://venue.example/img.jpg"),

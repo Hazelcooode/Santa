@@ -1,60 +1,28 @@
 # Sola — a little help with everyday
 
-A personal assistant for young people living alone, based on [ideas.txt](ideas.txt) and the [Exa Junction challenge](challenge.txt). Sola turns everyday research into a short, sourced plan that the user can approve.
+## Current connected release
 
-**Implemented:** a responsive website and mobile app, plus a Python backend ([backend/README.md](backend/README.md)) with sign-in, live Exa research through three bounded agents, Cloudinary media, and APIs for every feature in the function design. **Simulated:** purchases, reservations, rides, messaging and emergency delivery. Camera analysis is mocked as on-device detections.
+FastAPI + SQLite serves both interfaces. Website Groceries, Price watch, Discover and account Chat, and Mobile Shopping now use account-backed data. Brand, generic details, arbitrary attributes, automatic price lookup, manual Update prices, saved source quotes and user-selected city/chains are implemented. Other prototype controls and external actions are explicitly labeled simulations.
 
-## Run with the backend
+Start with [local testing](docs/local-testing.md), [use cases](docs/use-cases.md), the [current API index](docs/api-route-index.md) and [deployment](docs/deployment.md). These guides supersede older fixture-only descriptions below.
 
-```bash
-backend/run.sh   # http://127.0.0.1:8000 · test@taimi.app / taimi-demo-2026
-```
-
-## Run the UI only
-
-Requires Node.js 20+. No dependency installation or API keys needed.
+On Windows, after installing `backend/requirements.txt` into `.venv`, run:
 
 ```powershell
-cd 'current folder'
-npm run dev
+.\backend\run.ps1 -Port 239 -Reload
 ```
 
-Open **http://127.0.0.1:239**. Use `Ctrl+C` to stop the preview. If the port is occupied, run `$env:PORT=240` before `npm run dev`. The Node server serves static files only; it is not the proposed backend.
+Open `/register` for a fresh account, `/` for the website, `/mobile/` for mobile, `/integrations` for provider checks and `/docs` for all API functions at `http://127.0.0.1:239`. SQLite creates/upgrades automatically; no separate database server is needed. For real inputs set `DATA_MODE=live`, `EXA_MODE=live`, `SEED_DEMO_ACCOUNT=0` and your keys in `backend/.env`. Disabling seeding does not remove an existing demo account. Do not overwrite your current `.env`.
+
+The static `npm run dev` preview still uses fixtures and cannot share port 239 with FastAPI. Read the guides above before following the historical overview below.
+
+## Validation
 
 ```powershell
+.\.venv\Scripts\python.exe -m pytest backend\tests -q -p no:cacheprovider
 npm run check
 npm test
 npm run build
 ```
 
-The build copies the frontend into `dist/` for any root-mounted static host. Do not open `index.html` directly with `file://`; browser ES modules need HTTP. Google Fonts is optional; system sans-serif fallback keeps the UI usable offline. All illustrations are CSS and emoji, with no image downloads.
-
-## Explore
-
-1. Overview → review the day and choose a mood.
-2. Groceries → check off items, add an item, filter essentials, switch one-store versus split-store comparison.
-3. Review plan → save a **local demo** approval. Nothing is ordered or scheduled.
-4. Laundry → review and save a **local demo** slot.
-5. Discover → save and unsave sample ideas.
-6. Talk to Sola → test short scripted responses; this is not a language model.
-7. Wellbeing → demo check-in and privacy preferences.
-8. Price watch → explore any item category or enter an exact model/SKU, compare up to three items and sample store totals, save a search/item watch, set a target, simulate drops, pause/resume and inspect synthetic history. Electronics, footwear, clothing and tickets have fixtures; custom items remain unquoted.
-
-Lists, preferences, saved ideas and plan flags persist under `sola-demo-v1` in browser localStorage. Price watches persist separately under `sola-price-watch-v1`; they run only through manual simulation, never in the background. Chat stays in memory. Settings → Reset demo data clears the saved state. Avoid entering sensitive information into this shared prototype.
-
-## Project map
-
-| Path | Purpose |
-| --- | --- |
-| `src/app.js` | Seven screens, dialog flows and mock interaction controller |
-| `src/model.js` | Fixture data, money calculations, safe text rendering and storage validation |
-| `src/price-model.js`, `src/price-watch.js` | General item matching, offer totals, saved watches, alerts and price-watch screen |
-| `src/styles.css` | Responsive design, CSS mascot, keyboard focus and print styling |
-| `scripts/` | Dependency-free static preview and build |
-| `tests/` | Core basket, input and storage recovery tests |
-| `docs/` | Implementation specifications, not claims of implemented services |
-| `mobile/` | Separate Figment mobile app prototype, sharing the website's visual language. See [mobile/README.md](mobile/README.md) |
-
-Start with the [documentation index](docs/README.md), [scope](docs/product.md), [frontend](docs/frontend.md), [backend](docs/backend.md), [three agents](docs/exa-agents.md), [database](docs/database.md), [API](docs/api.md), [usage guide](docs/use/readme.md), [price watch](docs/price-watch.md), [feature ideas](docs/features.md), [privacy](docs/privacy-security.md), and [delivery plan](docs/implementation-plan.md).
-
-The working name **Sola**, Helsinki setting, Alex persona, euro prices and sample times are editable design assumptions. The original challenge and ideas files are preserved.
+The mobile interface is a phone-oriented web application, not a native package. `dist/` contains only the static UI demo, not the FastAPI service. The original [challenge](challenge.txt), [ideas](ideas.txt) and [design docs](docs/README.md) are preserved.

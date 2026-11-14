@@ -1,3 +1,5 @@
+> Connected-mode update: FastAPI-served Groceries, Price watch, Discover and account Chat use api-client.js, live-shopping.js and live-watches.js. Mobile Shopping shares live-shopping. User-selected city/chains, generic details, automatic lookup, Update prices, persisted quotes and provider checks are implemented. Static mode retains fixtures. See [local testing](local-testing.md) and [use cases](use-cases.md).
+
 # Frontend implementation
 
 ## Current implementation
@@ -54,3 +56,21 @@ For live work handle: no items; all items bought; no source matches; rate limits
 ## Verification
 
 Run `npm run check`, `npm test`, `npm run build`. In a browser test all seven screens at desktop and 390 px width, keyboard navigation, Escape closing dialogs, refresh persistence, input escaping, reset, print preview, zero-item list and unpriced-item review. Backend and provider tests are future work; the existing tests cover basket calculations, input/state recovery, cross-category matching, exact variants, fee-aware offer ranking, unavailable offers, threshold alerts, pause behavior, unknown quotes and watch persistence. Browser checks should also exercise category/mode controls, shortlist limits, target edits and refresh.
+
+
+## Price lookup diagnostics (current implementation)
+
+The account-connected shopping UI (shared by desktop and mobile) shows **Price lookup details** for excluded results. Accepted quote sources are separate from inspected pages: a category page is never presented as evidence of a saved item price. A zero known subtotal with unpriced items does not mean those items are free.
+
+Watches show the last check notice and **Why pages were excluded**. History displays saved quotes and up to 20 recent check attempts separately. `no_matches` means research completed but did not produce a qualifying quote. `error` means the provider failed; `stale` means a previous quote exists but no new matching quote was found. The latest saved quote is retained. Restart the backend and reload both clients after updating code.
+
+
+## Saved outputs, trip builder and media controls
+
+See [the current workflow](media-and-trips.md). Groceries offers explicit selected-shop/nearby discovery modes, per-shop lookup coverage and no navigation count badge. Watches make websites optional, restore latest and saved options, offer Save best 1/5/10, and generate product-photo animations only on request. Discover restores research outputs, selects up to eight events across queries, saves standalone events or combined trips, and generates a schedule card plus at most three source-photo event previews. Media playback and source links stay on saved account objects. Unknown availability is excluded from watch offers.
+
+
+Current UI: see [the screenshot-based redesign](ui-redesign.md) for shared layouts, static/connected modes, individual-event filtering and itinerary exports.
+
+
+Latest behaviour: [manual grocery pricing, strict attributes, temporary research and named lists](current-behavior.md). This supersedes earlier automatic-lookup and restored-research descriptions.

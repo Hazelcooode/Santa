@@ -1,3 +1,5 @@
+> Runtime update: the backend is Python/FastAPI + SQLite. Account shopping, saved source quotes, generic product details, price refresh and provider checks are implemented. See [local testing](local-testing.md) and [deployment](deployment.md); external actions remain simulations. The TypeScript/PostgreSQL plan below is historical.
+
 # Backend implementation plan
 
 ## Proposed stack and boundaries
@@ -61,3 +63,11 @@ Development, staging and production use separate provider keys/databases. Backup
 ## General price monitoring
 
 The [Price watch specification](price-watch.md) extends the same three agents to arbitrary items and exact variants. A deterministic scheduler owns recurring jobs and alert evaluation; there is no fourth agent. Current frontend checks are simulations, not live jobs.
+
+
+## Current pricing, research persistence and media
+
+The Python services now validate display-price text and package/item basis in `price_evidence.py`, research each selected grocery domain separately, and support explicit nearby-retailer discovery. Watches require availability evidence and preserve multiple options. `plans.py` stores research snapshots and account-owned event/trip plans, validates source ownership and limits event preview generation to three events per plan. Cloudinary generation uses the Python SDK, with product-page JSON-LD/Open Graph image extraction on request. See [workflow, configuration and API details](media-and-trips.md).
+
+
+Latest behaviour: [manual grocery pricing, strict attributes, temporary research and named lists](current-behavior.md). This supersedes earlier automatic-lookup and restored-research descriptions.
