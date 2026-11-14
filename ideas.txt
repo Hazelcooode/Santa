@@ -1,0 +1,22 @@
+Prototype: a mobile app for central control of the personal assistant
+Target crowd: young people who live alone
+Imaging/video data are processed locally.
+Features:
+Intelligent life organiser: 
+Connected to cameras in the fridge and in the storage room/cabinet/shelves. If some regular things are missing out, list them on the shopping lists. Shopping lists have different priorities. The agent would search online for prices in local stores. Find the cheapest deal (from different stores) or the cheapest deal (from one mall or one store) or other criteria-based best deals. Users can choose to have the agent order online or print the shopping list so they can take it when going to shop. Find an available slot in the calendar to schedule a grocery shopping . Users can also edit it on the app.
+Connected to cameras in the dirty basket. Make laundry plans according to users’ wardrobe, avoiding running out of clothes to wear. Make laundry reservations for users based on both the available slots.
+
+Companionship:
+Daily chat with users and mark down memories of users’ preference under user’s consent. Will search for more data in the back regarding the user’s interest & hobbies. If anything new or funny comes up, share it with the user social media account from agent’s own social media accounts. Users can also also use social media to call/video chat with agent. The languages should be more casual like between friends. If users are going through mental issues, only kindly ask for permission to reach out to social support for them, never encourage any behaviors that cause harm to users or society.
+
+Life treatment:
+Find events, travels (flights, accommodations, etc.) that could be interesting for the user. Return the results with clear&concise information, as well as more details (e.g. such as images and videos for travel spots, social media posts could also be an important source).
+Find products that the user explicitly asked for. Can distinguish the key elements the user wants from a product, and iterate search strategies with user feedback (able to comprehend visual info from the inputs and outputs).
+
+Safety
+Regular check: Regular confirmation that needs authentication from user. If one day user is missing, send emergency messages to user-binded accounts (like their family), as well as the location records since the last confirmation.
+Safety emergency: one button with fingerprint or face ID, send messages to user-binded accounts (police could be added), reporting the exact location right now. A few buttons about the emergency type could be quickly chosen. Can send without choosing one as well.
+Door front monitoring: connected to door front monitoring camera, detect suspicious visitors hanging around the door
+
+Health
+Search for proper/user-required non-prescription medicine and make delivery orders. Suggest appointments based on user’s personal calendar. Book an Uber to the hospital if needed. Connect to personal health digital device to keep track of the data. If abnormal situations occurred, ask user their feeling caringly and suggest corresponding nutritional meals and activities.
