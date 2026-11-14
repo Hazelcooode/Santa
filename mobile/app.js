@@ -51,25 +51,25 @@
     function dayShort(offset) { var d = new Date(now); d.setDate(d.getDate() + offset); return DAYS[d.getDay()].slice(0, 3) + ' ' + d.getDate(); }
 
     var I = {
-        check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
-        plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
-        x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
-        lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>',
-        cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>',
-        watch: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6l1-4h4l1 4M9 18l1 4h4l1-4M10 12h1.5l1-2 1 4 .8-2H15"/></svg>',
-        bag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 01-8 0"/></svg>',
-        print: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
-        cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
-        up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11M2 13v7a2 2 0 002 2h13.4a2 2 0 002-1.7l1.4-9A2 2 0 0018.8 9H14V4a3 3 0 00-3-3l-4 10"/></svg>',
-        down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2v11M22 11V4a2 2 0 00-2-2H6.6a2 2 0 00-2 1.7l-1.4 9A2 2 0 005.2 15H10v5a3 3 0 003 3l4-10"/></svg>',
-        fp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 11c0 3.5-1 6.5-3 9M8 8.5A5 5 0 0117 11c0 1.5-.1 3-.4 4.4M6.3 14.5c.5-1.1.7-2.3.7-3.5a5 5 0 01.4-2M15.5 19.5c.3-.8.6-1.7.8-2.6M3.5 9a9 9 0 0116.9 0M12 15c-.3 2-1 3.8-2 5.5M3 12.5c.1-.5.2-1 .4-1.5"/></svg>',
-        face: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V5a2 2 0 012-2h3M16 3h3a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M8 21H5a2 2 0 01-2-2v-3"/><path d="M9 9v1M15 9v1M12 9v4h-1M9 16c1.7 1.3 4.3 1.3 6 0"/></svg>',
-        upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
-        car: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M3 17v-4l2-5a2 2 0 012-1h10a2 2 0 012 1l2 5v4"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>',
-        send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>',
-        refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.8-3.4L23 10M1 14l4.7 4.4A9 9 0 0020.5 15"/></svg>',
-        search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
-        pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+        check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+        plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+        x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+        lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>',
+        cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+        watch: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6l1-4h4l1 4M9 18l1 4h4l1-4M10 12h1.5l1-2 1 4 .8-2H15"/></svg>',
+        bag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 01-8 0"/></svg>',
+        print: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
+        cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+        up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11M2 13v7a2 2 0 002 2h13.4a2 2 0 002-1.7l1.4-9A2 2 0 0018.8 9H14V4a3 3 0 00-3-3l-4 10"/></svg>',
+        down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2v11M22 11V4a2 2 0 00-2-2H6.6a2 2 0 00-2 1.7l-1.4 9A2 2 0 005.2 15H10v5a3 3 0 003 3l4-10"/></svg>',
+        fp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 11c0 3.5-1 6.5-3 9M8 8.5A5 5 0 0117 11c0 1.5-.1 3-.4 4.4M6.3 14.5c.5-1.1.7-2.3.7-3.5a5 5 0 01.4-2M15.5 19.5c.3-.8.6-1.7.8-2.6M3.5 9a9 9 0 0116.9 0M12 15c-.3 2-1 3.8-2 5.5M3 12.5c.1-.5.2-1 .4-1.5"/></svg>',
+        face: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V5a2 2 0 012-2h3M16 3h3a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M8 21H5a2 2 0 01-2-2v-3"/><path d="M9 9v1M15 9v1M12 9v4h-1M9 16c1.7 1.3 4.3 1.3 6 0"/></svg>',
+        upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+        car: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M3 17v-4l2-5a2 2 0 012-1h10a2 2 0 012 1l2 5v4"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>',
+        send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>',
+        refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0114.8-3.4L23 10M1 14l4.7 4.4A9 9 0 0020.5 15"/></svg>',
+        search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+        pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>'
     };
     var loaderSvg = '<svg class="loader" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>';
 
@@ -254,17 +254,17 @@
        finishing a task hangs its decoration on the tree.
        ========================================================= */
     var TASKS = [
-        { deco: 'deco-star', bg: 'var(--c-card-green)', fg: '#F2F2F2', btnBg: '#F2F2F2', btnFg: '#1B7F4E', rot: [-3, 2], delay: 0, cls: '',
+        { deco: 'deco-star', tint: 'green', rot: [-1, 0.8], delay: 0, cls: '',
           kicker: 'Safety', title: 'Daily check-in', sub: function () { return 'due by ' + S.checkin.nextHour + ':00'; }, label: 'Check in', doneLabel: 'Safe', href: '#/safety', auth: 'Confirm your daily check-in so your people know you\'re okay.' },
-        { deco: 'deco-red-ball', bg: 'var(--c-card-orange)', fg: '#0E0E0E', btnBg: '#F2F2F2', btnFg: '#EF3922', rot: [4, -2], delay: .5, cls: 'mt-8',
+        { deco: 'deco-red-ball', tint: 'peach', rot: [1.2, -0.6], delay: .5, cls: 'mt-8',
           kicker: 'Organiser', title: 'Grocery run', sub: function () { return fmtH(S.groceryTrip.start) + ' · REDI mall'; }, label: 'Done', doneLabel: 'Shopped', href: '#/shopping' },
-        { deco: 'deco-garland', bg: 'var(--c-card-dark)', fg: '#F2F2F2', btnBg: '#F46927', btnFg: '#0E0E0E', rot: [-2, 3], delay: .2, cls: '-mt-4',
+        { deco: 'deco-garland', tint: 'lavender', rot: [-0.8, 1], delay: .2, cls: '-mt-4',
           kicker: 'Organiser', title: 'Book laundry slot', sub: function () { return 'clean clothes: ' + minRunway() + ' days left'; }, label: 'Done', doneLabel: 'Booked', href: '#/laundry' },
-        { deco: 'deco-bell', bg: 'var(--c-card-orange)', fg: '#0E0E0E', btnBg: '#0E0E0E', btnFg: '#F2F2F2', rot: [2, -4], delay: .8, cls: 'mt-4',
+        { deco: 'deco-bell', tint: 'green', rot: [0.8, -1.2], delay: .8, cls: 'mt-4',
           kicker: 'Companion', title: 'Catch up with Ginger', sub: function () { return 'how was your day?'; }, label: 'Chatted', doneLabel: 'Chatted', href: '#/chat' },
-        { deco: 'deco-cane', bg: 'var(--c-card-light)', fg: '#0E0E0E', btnBg: '#1B7F4E', btnFg: '#F2F2F2', rot: [-4, 2], delay: .3, cls: '',
+        { deco: 'deco-cane', tint: 'peach', rot: [-1.2, 0.6], delay: .3, cls: '',
           kicker: 'Health', title: '20-min daylight walk', sub: function () { return 'sleep\'s been short'; }, label: 'Done', doneLabel: 'Walked', href: '#/health' },
-        { deco: 'deco-orange-ball', bg: 'var(--c-card-light)', fg: '#0E0E0E', btnBg: '#0E0E0E', btnFg: '#F2F2F2', rot: [3, -3], delay: 1, cls: 'mt-12',
+        { deco: 'deco-orange-ball', tint: 'lavender', rot: [1, -1], delay: 1, cls: 'mt-12',
           kicker: 'Treat yourself', title: 'Jazz trio, Fri 22:00', sub: function () { return 'free · 600 m away'; }, label: 'Save', doneLabel: 'Saved', href: '#/explore' }
     ];
 
@@ -278,9 +278,9 @@
         var wrap = $('#today-cards');
         wrap.innerHTML = TASKS.map(function (t, i) {
             var done = !!S.today.done[t.deco];
-            return '<div class="tool-card plain-card ' + t.cls + '" style="background:' + t.bg + ';color:' + t.fg + ';--rot-start:' + t.rot[0] + 'deg;--rot-end:' + t.rot[1] + 'deg;animation-delay:' + t.delay + 's;--i:' + i + ';">' +
+            return '<div class="tool-card plain-card tint-' + t.tint + ' ' + t.cls + '" style="--rot-start:' + t.rot[0] + 'deg;--rot-end:' + t.rot[1] + 'deg;animation-delay:' + t.delay + 's;--i:' + i + ';">' +
                 '<a class="task-body" href="' + t.href + '"><span class="task-kicker">' + esc(t.kicker) + '</span><span class="task-title">' + esc(t.title) + '</span><span class="task-sub">' + esc(t.sub()) + '</span></a>' +
-                '<button class="deco-btn' + (done ? ' done' : '') + '" type="button" data-i="' + i + '"' + (done ? ' disabled' : '') + ' style="--btn-bg:' + t.btnBg + ';--btn-fg:' + t.btnFg + ';" aria-label="' + esc(t.title) + ': mark done and hang a decoration">' +
+                '<button class="deco-btn' + (done ? ' done' : '') + '" type="button" data-i="' + i + '"' + (done ? ' disabled' : '') + ' aria-label="' + esc(t.title) + ': mark done and hang a decoration">' +
                 I.plus.replace('<svg', '<svg class="icon-plus"') + I.check.replace('<svg', '<svg class="icon-check"') +
                 '<span class="deco-btn-label">' + esc(done ? t.doneLabel : t.label) + '</span></button></div>';
         }).join('');
@@ -614,17 +614,17 @@
        ========================================================= */
     function art(key) {
         var A = {
-            jazz: '<rect width="160" height="80" fill="#0E0E0E"/><circle cx="40" cy="40" r="22" fill="#F46927"/><circle cx="40" cy="40" r="6" fill="#0E0E0E"/><path d="M90 60 Q96 20 120 18 L124 24 Q104 28 102 60 Q100 70 92 68 Z" fill="#EF3922"/><circle cx="135" cy="20" r="3" fill="#F2F2F2"/><circle cx="70" cy="18" r="2" fill="#F2F2F2"/><path d="M60 62 h20 M64 56 v12 M76 56 v12" stroke="#1B7F4E" stroke-width="3"/>',
-            climb: '<rect width="160" height="80" fill="#1B7F4E"/><path d="M0 80 L40 10 L80 80 Z" fill="#F46927" opacity=".9"/><path d="M60 80 L110 0 L160 80 Z" fill="#0E0E0E" opacity=".85"/><circle cx="96" cy="30" r="4" fill="#EF3922"/><circle cx="112" cy="46" r="5" fill="#F2F2F2"/><circle cx="100" cy="60" r="4" fill="#F46927"/><circle cx="36" cy="40" r="3" fill="#F2F2F2"/>',
-            market: '<rect width="160" height="80" fill="#F46927"/><rect x="20" y="36" width="50" height="34" fill="#F2F2F2"/><path d="M14 36 L45 16 L76 36 Z" fill="#EF3922"/><rect x="88" y="40" width="50" height="30" fill="#0E0E0E"/><path d="M82 40 L113 22 L144 40 Z" fill="#1B7F4E"/><circle cx="45" cy="54" r="5" fill="#EF3922"/><circle cx="113" cy="55" r="5" fill="#F46927"/>',
-            design: '<rect width="160" height="80" fill="#F2F2F2"/><circle cx="44" cy="40" r="24" fill="#EF3922"/><rect x="74" y="16" width="34" height="48" fill="#1B7F4E"/><path d="M118 64 L138 18 L154 64 Z" fill="#F46927"/><circle cx="91" cy="40" r="7" fill="#F2F2F2"/>',
-            aurora: '<rect width="160" height="80" fill="#0E0E0E"/><path d="M0 40 Q40 10 80 34 T160 22 L160 44 Q120 56 80 46 T0 58 Z" fill="#1B7F4E" opacity=".9"/><path d="M0 30 Q50 6 90 26 T160 12" fill="none" stroke="#F2F2F2" stroke-width="1" opacity=".5"/><path d="M0 80 L30 58 L54 72 L86 52 L120 74 L160 56 L160 80 Z" fill="#F2F2F2"/><circle cx="130" cy="14" r="1.5" fill="#F2F2F2"/><circle cx="24" cy="12" r="1.2" fill="#F2F2F2"/><rect x="66" y="58" width="16" height="12" fill="#F46927"/>',
-            ferry: '<rect width="160" height="80" fill="#F2F2F2"/><rect y="56" width="160" height="24" fill="#1B7F4E"/><path d="M30 56 L130 56 L120 68 L40 68 Z" fill="#0E0E0E"/><rect x="50" y="40" width="60" height="16" fill="#F2F2F2" stroke="#0E0E0E" stroke-width="2"/><rect x="70" y="28" width="10" height="12" fill="#EF3922"/><circle cx="130" cy="20" r="10" fill="#F46927"/>'
+            jazz: '<rect width="160" height="80" fill="#353B35"/><circle cx="40" cy="40" r="22" fill="#B8A1D3"/><circle cx="40" cy="40" r="6" fill="#353B35"/><path d="M90 60 Q96 20 120 18 L124 24 Q104 28 102 60 Q100 70 92 68 Z" fill="#D6744C"/><circle cx="135" cy="20" r="3" fill="#FFFEFA"/><circle cx="70" cy="18" r="2" fill="#FFFEFA"/><path d="M60 62 h20 M64 56 v12 M76 56 v12" stroke="#8E9C7E" stroke-width="3"/>',
+            climb: '<rect width="160" height="80" fill="#8E9C7E"/><path d="M0 80 L40 10 L80 80 Z" fill="#B8A1D3" opacity=".9"/><path d="M60 80 L110 0 L160 80 Z" fill="#353B35" opacity=".85"/><circle cx="96" cy="30" r="4" fill="#D6744C"/><circle cx="112" cy="46" r="5" fill="#FFFEFA"/><circle cx="100" cy="60" r="4" fill="#B8A1D3"/><circle cx="36" cy="40" r="3" fill="#FFFEFA"/>',
+            market: '<rect width="160" height="80" fill="#B8A1D3"/><rect x="20" y="36" width="50" height="34" fill="#FFFEFA"/><path d="M14 36 L45 16 L76 36 Z" fill="#D6744C"/><rect x="88" y="40" width="50" height="30" fill="#353B35"/><path d="M82 40 L113 22 L144 40 Z" fill="#8E9C7E"/><circle cx="45" cy="54" r="5" fill="#D6744C"/><circle cx="113" cy="55" r="5" fill="#B8A1D3"/>',
+            design: '<rect width="160" height="80" fill="#FFFEFA"/><circle cx="44" cy="40" r="24" fill="#D6744C"/><rect x="74" y="16" width="34" height="48" fill="#8E9C7E"/><path d="M118 64 L138 18 L154 64 Z" fill="#B8A1D3"/><circle cx="91" cy="40" r="7" fill="#FFFEFA"/>',
+            aurora: '<rect width="160" height="80" fill="#353B35"/><path d="M0 40 Q40 10 80 34 T160 22 L160 44 Q120 56 80 46 T0 58 Z" fill="#8E9C7E" opacity=".9"/><path d="M0 30 Q50 6 90 26 T160 12" fill="none" stroke="#FFFEFA" stroke-width="1" opacity=".5"/><path d="M0 80 L30 58 L54 72 L86 52 L120 74 L160 56 L160 80 Z" fill="#FFFEFA"/><circle cx="130" cy="14" r="1.5" fill="#FFFEFA"/><circle cx="24" cy="12" r="1.2" fill="#FFFEFA"/><rect x="66" y="58" width="16" height="12" fill="#B8A1D3"/>',
+            ferry: '<rect width="160" height="80" fill="#FFFEFA"/><rect y="56" width="160" height="24" fill="#8E9C7E"/><path d="M30 56 L130 56 L120 68 L40 68 Z" fill="#353B35"/><rect x="50" y="40" width="60" height="16" fill="#FFFEFA" stroke="#353B35" stroke-width="2"/><rect x="70" y="28" width="10" height="12" fill="#D6744C"/><circle cx="130" cy="20" r="10" fill="#B8A1D3"/>'
         };
         var svg = A[key];
         if (!svg && /^boot/.test(key)) {
-            var cols = { boot1: ['#0E0E0E', '#F46927'], boot2: ['#6b3b22', '#0E0E0E'], boot3: ['#1B7F4E', '#0E0E0E'], boot4: ['#F2F2F2', '#EF3922'], boot5: ['#0E0E0E', '#1B7F4E'], boot6: ['#0E0E0E', '#F2F2F2'] }[key];
-            var bg = { boot1: '#F46927', boot2: '#F2F2F2', boot3: '#F2F2F2', boot4: '#1B7F4E', boot5: '#F46927', boot6: '#EF3922' }[key];
+            var cols = { boot1: ['#353B35', '#B8A1D3'], boot2: ['#6b3b22', '#353B35'], boot3: ['#8E9C7E', '#353B35'], boot4: ['#FFFEFA', '#D6744C'], boot5: ['#353B35', '#8E9C7E'], boot6: ['#353B35', '#FFFEFA'] }[key];
+            var bg = { boot1: '#B8A1D3', boot2: '#FFFEFA', boot3: '#FFFEFA', boot4: '#8E9C7E', boot5: '#B8A1D3', boot6: '#D6744C' }[key];
             svg = '<rect width="160" height="160" fill="' + bg + '"/><path d="M50 30 L90 30 L92 92 Q130 96 136 116 L136 126 L44 126 L44 100 Q46 60 50 30 Z" fill="' + cols[0] + '"/><rect x="44" y="120" width="92" height="10" rx="3" fill="' + cols[1] + '"/><path d="M52 40 h36" stroke="' + cols[1] + '" stroke-width="3"/>';
             return '<svg viewBox="0 0 160 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + svg + '</svg>';
         }
@@ -675,7 +675,7 @@
                 '<div class="result-meta">' + esc(r.when) + ' · ' + esc(r.where) + ' · <b>' + esc(r.price) + '</b></div>' +
                 '<div class="result-why">' + esc(r.why) + '</div>' +
                 '<div class="result-more">' +
-                    '<div class="gallery"><div>' + art(r.art) + '</div><div style="filter:hue-rotate(40deg)">' + art(r.art) + '</div><div style="filter:saturate(.6)">' + art(r.art) + '<span class="play"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="rgba(14,14,14,.7)"/><path d="M10 8l6 4-6 4z" fill="#F2F2F2"/></svg></span></div></div>' +
+                    '<div class="gallery"><div>' + art(r.art) + '</div><div style="filter:hue-rotate(40deg)">' + art(r.art) + '</div><div style="filter:saturate(.6)">' + art(r.art) + '<span class="play"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="rgba(41,45,44,.7)"/><path d="M10 8l6 4-6 4z" fill="#FFFEFA"/></svg></span></div></div>' +
                     (r.details ? '<ul class="list" style="margin-top:12px">' + r.details.map(function (d) { return '<li style="padding:7px 0"><span class="label-caps" style="width:54px;flex:none">' + esc(d.k) + '</span><span class="small">' + esc(d.v) + '</span></li>'; }).join('') + '</ul>' : '') +
                     (r.posts || []).map(function (p) { return '<div class="social-post"><div class="who">' + esc(p.who) + ' · social</div>' + esc(p.text) + '</div>'; }).join('') +
                 '</div>' +
@@ -749,7 +749,7 @@
                     '<div class="fb"><button type="button" data-fb="like" class="' + (liked ? 'on-like' : '') + '" aria-pressed="' + liked + '">' + I.up + 'More</button><button type="button" data-fb="dislike" class="' + (dis ? 'on-dislike' : '') + '" aria-pressed="' + dis + '">' + I.down + 'Not this</button></div>' +
                     '</div></div>';
             }).join('') + '</div>' +
-            '<button class="scallop-btn wide" id="refine" type="button" style="margin-top:22px"' + (P.liked.length + P.disliked.length ? '' : ' disabled') + '><div class="scallop-svg-wrapper"><svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 180 60"><path d="M 30 2 Q 40 5 50 2 Q 60 -1 70 2 Q 80 5 90 2 Q 100 -1 110 2 Q 120 5 130 2 Q 140 -1 150 2 A 28 28 0 0 1 178 30 A 28 28 0 0 1 150 58 Q 140 61 130 58 Q 120 55 110 58 Q 100 61 90 58 Q 80 55 70 58 Q 60 61 50 58 Q 40 55 30 58 A 28 28 0 0 1 2 30 A 28 28 0 0 1 30 2 Z" fill="none" stroke="var(--c-brand)" stroke-width="2"/></svg></div><span>' +
+            '<button class="scallop-btn wide" id="refine" type="button" style="margin-top:22px"' + (P.liked.length + P.disliked.length ? '' : ' disabled') + '><span>' +
             (P.liked.length + P.disliked.length ? 'Search again with my ' + (P.liked.length + P.disliked.length) + ' reactions' : 'React to a few, then I\'ll search again') + '</span></button>';
 
         $$('#pr-results [data-key]').forEach(function (c) {
@@ -891,7 +891,7 @@
             var kind = b.dataset.call;
             if (kind === 'social') return openSocialSheet();
             var t0 = Date.now(), iv;
-            var gb = '<svg viewBox="0 0 160 100" style="width:120px;height:80px;margin:0 auto"><line x1="40" y1="42" x2="84" y2="42" stroke="#0E0E0E" stroke-width="10" stroke-linecap="round"/><line x1="55" y1="56" x2="47" y2="74" stroke="#0E0E0E" stroke-width="10" stroke-linecap="round"/><line x1="69" y1="56" x2="77" y2="74" stroke="#0E0E0E" stroke-width="10" stroke-linecap="round"/><ellipse cx="62" cy="48" rx="13" ry="16" fill="#0E0E0E"/><circle cx="62" cy="27" r="12" fill="#0E0E0E"/><circle cx="57.5" cy="25" r="1.8" fill="#F2F2F2"/><circle cx="66.5" cy="25" r="1.8" fill="#F2F2F2"/><path d="M57 31 Q62 35 67 31" fill="none" stroke="#F2F2F2" stroke-width="1.8" stroke-linecap="round"/><circle cx="62" cy="42" r="2.4" fill="#EF3922"/><circle cx="62" cy="50" r="2.4" fill="#EF3922"/></svg>';
+            var gb = '<svg viewBox="0 0 160 100" style="width:120px;height:80px;margin:0 auto"><line x1="40" y1="42" x2="84" y2="42" stroke="#353B35" stroke-width="10" stroke-linecap="round"/><line x1="55" y1="56" x2="47" y2="74" stroke="#353B35" stroke-width="10" stroke-linecap="round"/><line x1="69" y1="56" x2="77" y2="74" stroke="#353B35" stroke-width="10" stroke-linecap="round"/><ellipse cx="62" cy="48" rx="13" ry="16" fill="#353B35"/><circle cx="62" cy="27" r="12" fill="#353B35"/><circle cx="57.5" cy="25" r="1.8" fill="#FFFEFA"/><circle cx="66.5" cy="25" r="1.8" fill="#FFFEFA"/><path d="M57 31 Q62 35 67 31" fill="none" stroke="#FFFEFA" stroke-width="1.8" stroke-linecap="round"/><circle cx="62" cy="42" r="2.4" fill="#D6744C"/><circle cx="62" cy="50" r="2.4" fill="#D6744C"/></svg>';
             openSheet('<h2 id="sheet-title">' + (kind === 'video' ? 'Video call' : 'Voice call') + ' with Ginger</h2>' +
                 '<div class="panel ' + (kind === 'video' ? 'dark' : 'orange') + '" style="text-align:center;padding:28px 18px">' + gb +
                 '<div class="bold" style="margin-top:10px" id="call-status">Calling…</div>' +
@@ -935,9 +935,9 @@
         $('#vitals-panel').innerHTML =
             '<div class="panel-head"><div><div class="panel-title">Smart watch</div><div class="panel-sub">Synced 2 min ago · last 7 days</div></div><span class="badge">' + I.lock + 'Encrypted</span></div>' +
             '<div class="stats">' +
-            '<div class="stat alert"><div class="u">Resting HR</div><div class="v">' + hr + '</div><div class="u">bpm · avg ' + hrAvg + '</div>' + spark(L.hr, '#F2F2F2') + '</div>' +
-            '<div class="stat alert"><div class="u">Sleep</div><div class="v">' + sl.toFixed(1) + '</div><div class="u">h · 3 short nights</div>' + spark(L.sleep, '#F2F2F2') + '</div>' +
-            '<div class="stat"><div class="u">Steps</div><div class="v">' + (st / 1000).toFixed(1) + 'k</div><div class="u">today</div>' + spark(L.steps, '#F46927') + '</div>' +
+            '<div class="stat alert"><div class="u">Resting HR</div><div class="v">' + hr + '</div><div class="u">bpm · avg ' + hrAvg + '</div>' + spark(L.hr, '#FFFEFA') + '</div>' +
+            '<div class="stat alert"><div class="u">Sleep</div><div class="v">' + sl.toFixed(1) + '</div><div class="u">h · 3 short nights</div>' + spark(L.sleep, '#FFFEFA') + '</div>' +
+            '<div class="stat"><div class="u">Steps</div><div class="v">' + (st / 1000).toFixed(1) + 'k</div><div class="u">today</div>' + spark(L.steps, '#B8A1D3') + '</div>' +
             '</div>';
         renderCare(); renderMeds(); renderAppt();
     }
@@ -1025,7 +1025,7 @@
         el.innerHTML = '<div class="panel-title">Times that fit your calendar</div><div class="panel-sub" style="margin-bottom:10px">Based on your free slots this week</div>' +
             '<div class="stack">' + APPTS.map(function (a) {
                 var booked = UI.apptBooked === a.id, sel = UI.apptSel === a.id;
-                return '<button class="row" data-a="' + a.id + '" type="button" style="width:100%;text-align:left;padding:10px 12px;border-radius:12px;background:' + (booked || sel ? '#F2F2F2' : 'rgba(255,255,255,.1)') + ';color:' + (booked || sel ? '#0E0E0E' : 'inherit') + '">' +
+                return '<button class="row" data-a="' + a.id + '" type="button" style="width:100%;text-align:left;padding:10px 12px;border-radius:12px;background:' + (booked || sel ? '#FFFEFA' : 'rgba(255,255,255,.1)') + ';color:' + (booked || sel ? '#353B35' : 'inherit') + '">' +
                     '<div class="grow"><div class="item-title">' + esc(a.when) + '</div><div class="item-sub">' + esc(a.where) + ' · ' + esc(a.why) + '</div></div>' +
                     (booked ? '<span class="badge green">Booked</span>' : sel ? '<span class="badge red">Selected</span>' : '') + '</button>';
             }).join('') + '</div>' +

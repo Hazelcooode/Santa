@@ -47,6 +47,7 @@ Lists, preferences, saved ideas and plan flags persist under `sola-demo-v1` in b
 | `scripts/` | Dependency-free static preview and build |
 | `tests/` | Core basket, input and storage recovery tests |
 | `docs/` | Implementation specifications, not claims of implemented services |
+| `mobile/` | Separate Figment mobile app prototype, sharing the website's visual language. See [mobile/README.md](mobile/README.md) |
 
 Start with the [documentation index](docs/README.md), [scope](docs/product.md), [frontend](docs/frontend.md), [backend](docs/backend.md), [three agents](docs/exa-agents.md), [database](docs/database.md), [API](docs/api.md), [usage guide](docs/use/readme.md), [price watch](docs/price-watch.md), [feature ideas](docs/features.md), [privacy](docs/privacy-security.md), and [delivery plan](docs/implementation-plan.md).
 
