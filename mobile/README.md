@@ -29,6 +29,7 @@ The mobile UI uses the website's design tokens (`src/styles.css`), so the two re
 | Type | Manrope headings, DM Sans body | same |
 | Icons | 24px line icons, 1.6 stroke, round caps, inside pastel 37px tiles | same icon paths (home, groceries, laundry, discover, chat, safety) and the same tiles |
 | Buttons | 8px radius, dark `#353b35` primary, white secondary | same |
-| Illustration | flat, muted: lavender mascot, sage and terracotta plant, orbit rings | tree uses the plant palette on orbit rings, with lavender and terracotta decorations |
+| Assistant avatar | animated lavender character (two arms, two legs) in the hero, companion card and chat header, from `src/art.js` | the same character stands beside the tree, smaller than it, and appears on the call screen |
+| Tree | the hero shows the mobile tree, fully decorated (`src/art.js`) | the tree is decorated one task at a time |
 
 Legacy CSS variable names (`--c-brand`, `--c-card-*`) are kept as aliases onto the website palette, so markup and JS that use them still work.
