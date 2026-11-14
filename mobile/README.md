@@ -1,3 +1,5 @@
+> Connected mode: run FastAPI and open /mobile/. Shopping uses account CRUD, persisted quotes, chosen city/chains and Update prices. Events/products/chat call the API; other controls remain labeled simulations. See [local testing](../docs/local-testing.md) and [use cases](../docs/use-cases.md). Static mode below uses fixtures.
+
 # Figment — mobile app frontend
 
 A phone-first companion to the Sola website (repo root). It is a separate, dependency-free prototype (`index.html`, `styles.css`, `data.js`, `app.js`) with fictional data. It does not share code with the website. Only the visual language is shared.

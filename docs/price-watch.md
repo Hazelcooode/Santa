@@ -1,3 +1,7 @@
+> Scheduling update: connected watches accept 0 hours for manual-only checks, or 1–720 hours for automatic checks. Existing watches can change this with Save schedule. Country and search scope are separate; EU, selected countries and worldwide are query scopes, not country codes. See [current instructions](local-testing.md#price-refresh-troubleshooting-manual-watches-and-cross-border-searches).
+
+> Connected-mode update: the FastAPI-served website now uses account-backed generic/exact watches with manual and scheduled checks, user-entered location/sites/details, history, pause and in-app alerts. Static mode remains synthetic. Item prices do not guarantee fees or stock. See [local testing](local-testing.md).
+
 # General item comparison and price monitoring
 
 ## Product behavior
@@ -78,3 +82,24 @@ All personal rows include user ownership and composite foreign keys/RLS as in [d
 Replace `price-model.js` fixtures behind async adapters for search, watches and history. Keep the current form/view flow; add loading/partial/stale/error states, server-authenticated persisted watches, editable real domains, original evidence links and actual notification opt-in. Never label simulated prices as live.
 
 Test each supported category, identity mismatches, shipping reversing the cheapest ranking, unknown fees, out-of-stock deals, exact-only matching, custom/no-match queries, target crossings and recovery, pause/resume, alert deduplication, refresh persistence and multiple users. Ticket tests need date/time/fare mismatches and fees per ticket versus per booking. Verify no purchase or message occurs through a read-only check.
+
+
+## Matching and empty history (current implementation)
+
+Search summaries now assess the entire request, including translated names, units, product type and requested technical attributes. They return `page_type`, `request_match` and verbatim `match_evidence`. A positive request-specific assessment needs supporting page text; explicit brand text is also checked. Literal matching remains a conservative fallback, with unit normalization and numeric model-family wildcards (for example `50xx`). These are extracted page claims, not independently verified checkout prices.
+
+One additional product-focused search is allowed when the initial search has no usable match. Both calls retain the user's chosen websites and location scope and pass through the existing budget, cache and usage ledger. There is no unrestricted domain widening. Manual watch checks bypass the search cache; scheduled checks may reuse valid cached results. A force refresh requests fresh crawling but cannot guarantee the retailer is readable.
+
+A successful check with no quote returns `checkState: no_matches` (or `stale` if an older quote exists), diagnostics and an explanatory notice. Provider failures are recorded as errors. History returns `items` (successful price observations only), `checks` (up to 20 recent attempts) and `notice`. It does not backfill past website prices. Existing watches work without database migration; attempts before this change are not reconstructed.
+
+## Should we use Exa Agent?
+
+The current release continues to use Search with structured extraction and a bounded refinement. Exa Agent is a useful future opt-in for broad requests such as choosing a laptop from many specifications: it can orchestrate searches, page reading and candidate verification and return structured output with grounding. It is asynchronous, higher latency and usage priced; it should run as a background task with explicit cost/time controls within the existing Researcher, preserving the three application agents. It is not enabled by this change. It still cannot guarantee access to store-specific, login-only or JavaScript-only prices. Official reference: https://exa.ai/docs/agent/quickstart.md
+
+
+## Update: multiple options and availability
+
+Websites are now optional. Full-item displayed price text and explicit in-stock evidence are required. Latest results (up to ten), source/image URLs and a user-selected Save best 1/5/10 set survive sign-in. All accepted options are observed in price history. Product media can be generated per saved option on request. Old observations remain as recorded; quotes from before the display-price validation update need a fresh check before use as the current price. [Current instructions](media-and-trips.md).
+
+
+Latest behaviour: [manual grocery pricing, strict attributes, temporary research and named lists](current-behavior.md). This supersedes earlier automatic-lookup and restored-research descriptions.

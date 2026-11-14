@@ -121,7 +121,7 @@ def appointment_suggestions(user):
     picks = [slots[0], slots[len(slots) // 2]] if len(slots) > 1 else slots
     for i, sl in enumerate(picks):
         dt = db.parse_iso(sl["startAt"]).astimezone(calendar.tz(user))
-        out.append({"id": "a%d" % (i + 1), "when": dt.strftime("%a %-d · %H:%M"), "startAt": sl["startAt"], "endAt": sl["endAt"],
+        out.append({"id": "a%d" % (i + 1), "when": dt.strftime("%a %d · %H:%M").replace(" 0", " "), "startAt": sl["startAt"], "endAt": sl["endAt"],
                     "where": clinics[i % len(clinics)]["name"], "url": clinics[i % len(clinics)]["url"],
                     "why": "Your calendar is free then (with 30 min travel buffer)"})
     out.append({"id": "a%d" % (len(out) + 1), "when": "Today · video", "startAt": None, "where": "Online nurse chat",

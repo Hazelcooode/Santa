@@ -297,6 +297,8 @@ def test_price_watch_crud(client):
     assert w["status"] == "active"
     p = client.patch("/api/v1/price-watches/" + w["id"], json={"paused": True, "expectedVersion": w["version"]}).json()
     assert p["status"] == "paused"
+    assert client.post("/api/v1/price-watches/%s/checks" % w["id"]).status_code == 409
+    client.patch("/api/v1/price-watches/" + w["id"], json={"paused": False})
     chk = client.post("/api/v1/price-watches/%s/checks" % w["id"]).json()
     assert chk["checkState"] in ("partial", "error", "stale")
     assert client.delete("/api/v1/price-watches/" + w["id"]).json()["ok"]

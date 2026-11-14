@@ -29,6 +29,7 @@
                     localStorage.removeItem(KEY);
                     localStorage.setItem('taimi-user', server.user.id);
                 }
+                window.TAIMI_ACCOUNT_STATE = server;
                 var baseSeed = window.FigmentAPI.seed;
                 window.FigmentAPI.seed = function () {
                     var s = baseSeed();
@@ -46,6 +47,10 @@
     }
 
     function addSignOut() {
+        document.body.classList.add('has-runtime-banner');
+        var banner=document.createElement('div');banner.className='runtime-banner';
+        banner.innerHTML='Account-connected shopping and research · payments, bookings, cameras and emergency actions are simulations. <a href="/integrations">Integration status & local testing</a><a href="/docs">API explorer</a>';
+        document.body.prepend(banner);
         var a = document.createElement('a');
         a.href = '/logout';
         a.textContent = 'Sign out';

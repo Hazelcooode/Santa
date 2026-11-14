@@ -2,13 +2,14 @@
 from typing import Any, Dict, List, Optional, Union
 
 from fastapi import APIRouter, Header
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel, Field
 
-from .. import db
+from .. import db, search_scope
+from datetime import date
 from ..auth import CurrentUser
 from ..errors import ApiError
-from ..services import media, proposals, tasks, treats, watches
+from ..services import media, proposals, tasks, treats, watches, plans
 
 router = APIRouter(prefix="/api/v1", tags=["research"])
 
@@ -17,6 +18,10 @@ class ExploreIn(BaseModel):
     query: Optional[str] = ""
     kind: str = "events"
     interests: Optional[List[str]] = None
+    destination: str = Field('', max_length=100)
+    destinationCountry: str = Field('', max_length=2)
+    dateFrom: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    dateTo: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
 
 
 class ProductsIn(BaseModel):
@@ -41,27 +46,33 @@ class ApproveIn(BaseModel):
 
 
 class WatchIn(BaseModel):
-    query: str
+    query: str = Field(..., min_length=1, max_length=160)
     category: Optional[str] = None
-    targetMinor: Optional[int] = Field(None, ge=0)
-    currency: Optional[str] = None
-    sites: Optional[List[str]] = None
-    cadenceHours: Optional[int] = 24
-    buyBy: Optional[str] = None
+    mode: str = Field("explore", pattern="^(explore|exact)$")
+    city: str = Field("", max_length=100)
+    country: str = Field("", max_length=2)
+    searchScope: str = Field("country", pattern="^(country|eu|multiple|worldwide)$")
+    searchCountries: List[str] = Field(default_factory=list, max_length=10)
+    details: str = Field("", max_length=400)
+    targetMinor: Optional[int] = Field(None, gt=0, le=100000000)
+    currency: Optional[str] = Field(None, min_length=3, max_length=3)
+    sites: Optional[List[str]] = Field(None, max_length=10)
+    cadenceHours: int = Field(24, ge=0, le=720)
+    buyBy: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     notify: bool = True
 
 
 class WatchPatch(BaseModel):
     expectedVersion: Optional[int] = None
     paused: Optional[bool] = None
-    targetMinor: Optional[int] = None
-    query: Optional[str] = None
-    sites: Optional[List[str]] = None
-    cadenceHours: Optional[int] = None
+    targetMinor: Optional[int] = Field(None, gt=0, le=100000000)
+    query: Optional[str] = Field(None, min_length=1, max_length=160)
+    sites: Optional[List[str]] = Field(None, max_length=10)
+    cadenceHours: Optional[int] = Field(None, ge=0, le=720)
 
 
 class RotationIn(BaseModel):
-    imageUrls: List[str] = Field(..., description="Product photo URL(s) or data URLs; 4+ angles = real turntable")
+    imageUrls: List[str] = Field(..., description="Product photo URL(s) or data URLs; multiple photos = source gallery animation")
     title: Optional[str] = None
     format: str = Field("mp4", pattern="^(mp4|gif|webm)$")
 
@@ -81,7 +92,15 @@ class TeaserIn(BaseModel):
 
 @router.post("/explore")
 def explore(body: ExploreIn, user=CurrentUser):
-    return treats.explore(user, body.query, body.kind, body.interests)
+    for value in (body.dateFrom,body.dateTo):
+        if value:
+            try: date.fromisoformat(value)
+            except ValueError: raise ApiError(400,'INVALID_INPUT','Enter valid calendar dates.')
+    if body.destinationCountry:
+        search_scope.validate(body.destinationCountry.upper())
+    if body.dateFrom and body.dateTo and body.dateFrom > body.dateTo:
+        raise ApiError(400,'INVALID_INPUT','End date must be after the start date.')
+    return treats.explore(user, body.query, body.kind, body.interests, destination=body.destination, destinationCountry=body.destinationCountry.upper(), dateFrom=body.dateFrom, dateTo=body.dateTo)
 
 
 @router.post("/products/search")
@@ -202,3 +221,101 @@ def itinerary(body: ItineraryIn, user=CurrentUser):
 @router.post("/media/event-teaser", status_code=201)
 def teaser(body: TeaserIn, user=CurrentUser):
     return media.event_teaser(user, body.imageUrls, body.title, body.caption)
+
+
+class SaveOptionsIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120)
+    count: int = Field(..., ge=1, le=10)
+
+
+@router.post('/price-watches/{wid}/options')
+def save_watch_options(wid: str, body: SaveOptionsIn, user=CurrentUser):
+    return watches.save_options(user,wid,body.count,body.name)
+
+
+@router.post('/price-watches/{wid}/options/{oid}/rotation', status_code=201)
+def rotate_watch_option(wid: str,oid: str,user=CurrentUser):
+    try:
+        return watches.rotate_option(user,wid,oid)
+    except ApiError:
+        raise
+    except Exception:
+        raise ApiError(502,'MEDIA_PROVIDER_FAILED','Cloudinary could not generate the product preview. Existing saved options are retained.')
+
+
+class EventChoiceIn(BaseModel):
+    searchId: str
+    resultId: str
+
+
+class SavedTripIn(BaseModel):
+    title: str = Field('My trip', max_length=120)
+    choices: List[EventChoiceIn] = Field(..., min_length=1, max_length=8)
+
+
+class PlanMediaIn(BaseModel):
+    kind: str = Field(..., pattern='^(schedule|teasers)$')
+    eventIds: List[str] = Field(default_factory=list, max_length=3)
+
+
+@router.get('/research-searches')
+def saved_searches(user=CurrentUser):
+    return plans.searches(user)
+
+
+@router.get('/itineraries')
+def saved_trips(user=CurrentUser):
+    return plans.list_plans(user)
+
+
+@router.post('/itineraries',status_code=201)
+def save_trip(body: SavedTripIn,user=CurrentUser):
+    return plans.create(user,body.title,[c.model_dump() for c in body.choices])
+
+
+@router.delete('/itineraries/{pid}')
+def delete_trip(pid: str,user=CurrentUser):
+    plans.delete(user,pid)
+    return {'ok':True}
+
+
+@router.post('/itineraries/{pid}/media',status_code=201)
+def plan_media(pid: str,body: PlanMediaIn,user=CurrentUser):
+    try:
+        return plans.generate(user,pid,body.kind,body.eventIds)
+    except ApiError:
+        raise
+    except Exception:
+        raise ApiError(502,'MEDIA_PROVIDER_FAILED','Cloudinary could not generate this media. Check account permissions and retry; the saved plan is retained.')
+
+
+@router.get('/itineraries/{pid}/print',response_class=HTMLResponse)
+def print_itinerary(pid: str,user=CurrentUser):
+    return HTMLResponse(plans.printable(user,pid))
+
+
+@router.get('/itineraries/{pid}/calendar')
+def export_itinerary_calendar(pid: str,user=CurrentUser):
+    return Response(plans.calendar_file(user,pid),media_type='text/calendar',headers={'Content-Disposition':'attachment; filename="sola-itinerary.ics"'})
+
+
+@router.post('/price-watch-research')
+def research_price_watch(body: WatchIn,user=CurrentUser):
+    return watches.research(user,body.model_dump())
+
+
+class SaveResearchIn(BaseModel):
+    name: str = Field(...,min_length=1,max_length=120)
+    count: int = Field(...,ge=1,le=10)
+    saveToken: str = Field(...,max_length=100000)
+    cadenceHours: int = Field(0,ge=0,le=720)
+
+
+@router.post('/price-watch-lists',status_code=201)
+def save_researched_list(body: SaveResearchIn,user=CurrentUser):
+    return watches.save_research(user,body.name,body.count,body.saveToken,body.cadenceHours)
+
+
+@router.get('/media/{mid}/playback')
+def play_media(mid: str,user=CurrentUser,range_header: Optional[str]=Header(None,alias='Range')):
+    return media.playback(user,mid,range_header)

@@ -1,0 +1,10 @@
+# Requires an HTTPS reverse proxy and PUBLIC_HOST, e.g. app.example.com.
+# The base port remains loopback-only; the proxy forwards traffic to it.
+services:
+  app:
+    environment:
+      APP_ENV: production
+      DATA_MODE: live
+      SEED_DEMO_ACCOUNT: "0"
+      COOKIE_SECURE: "1"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,${PUBLIC_HOST:?Set PUBLIC_HOST to the public hostname}"

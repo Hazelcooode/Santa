@@ -37,7 +37,14 @@ def _payload_for(intent, request, constraints, user):
 def _work(user, task_id, intent, payload):
     try:
         db.run("UPDATE tasks SET status='researching', updated_at=? WHERE id=?", (db.iso(), task_id))
-        res = agents.run(user, intent, payload, task_id=task_id)
+        research_user = user
+        if intent == "groceries":
+            from .shopping_prices import search_user
+            research_user = search_user(user)
+        res = agents.run(research_user, intent, payload, task_id=task_id)
+        current = db.q1("SELECT status FROM tasks WHERE id=?", (task_id,))
+        if current and current["status"] == "cancelled":
+            return
         if res.get("status") == "clarifying":
             db.run("UPDATE tasks SET status='clarifying', missing_fields=?, updated_at=? WHERE id=?",
                    (db.dumps(res["missingFields"]), db.iso(), task_id))
