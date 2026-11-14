@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start the Taimi backend (API + both frontends). Usage: backend/run.sh [port]
+# Start the Sola backend (API + both frontends). Usage: backend/run.sh [port]
 set -euo pipefail
 cd "$(dirname "$0")"
 VENV="${VENV:-../.venv}"

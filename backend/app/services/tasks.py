@@ -127,7 +127,7 @@ def export_html(user, tid):
                 body.append("<li>%s</li>" % html.escape(str(x.get("title") or x.get("name") or "")))
     srcs = "".join('<li><a href="%s">%s</a></li>' % (html.escape(s["url"], quote=True), html.escape(s.get("title", s["url"])))
                    for s in p.get("sources", []) if isinstance(s, dict) and s.get("url"))
-    return "<!doctype html><meta charset='utf-8'><title>Taimi plan</title><h1>%s</h1><ul>%s</ul><h3>Sources</h3><ul>%s</ul>" % (
+    return "<!doctype html><meta charset='utf-8'><title>Sola plan</title><h1>%s</h1><ul>%s</ul><h3>Sources</h3><ul>%s</ul>" % (
         html.escape(t["request"] or t["intent"]), "".join(body), srcs)
 
 

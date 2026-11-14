@@ -1,4 +1,4 @@
-/* Taimi bridge: injected only when the backend serves the frontends.
+/* Sola bridge: injected only when the backend serves the frontends.
    - mobile: hydrate the first-run state from the signed-in account (/api/v1/state)
      and clear another account's cached local state;
    - both: send the user to /login when the session expires, and add a sign-out control.
@@ -49,7 +49,7 @@
         var a = document.createElement('a');
         a.href = '/logout';
         a.textContent = 'Sign out';
-        a.setAttribute('aria-label', 'Sign out of Taimi');
+        a.setAttribute('aria-label', 'Sign out of Sola');
         var reset = document.getElementById('reset-demo');
         if (reset && reset.parentNode) {
             a.className = reset.className || 'pill outline';

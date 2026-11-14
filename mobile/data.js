@@ -1,5 +1,5 @@
 /* =========================================================
-   Figment — data + API layer
+   Sola — data + API layer
    ---------------------------------------------------------
    Every screen talks to window.FigmentAPI only. Right now it
    answers from the mock data below (with a short fake delay)
@@ -18,7 +18,7 @@
 (function () {
     'use strict';
 
-    var USE_BACKEND = window.FIGMENT_USE_BACKEND === true; // set by the Taimi backend when it serves this page
+    var USE_BACKEND = window.FIGMENT_USE_BACKEND === true; // set by the Sola backend when it serves this page
     var API_BASE = '/api';
 
     function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }

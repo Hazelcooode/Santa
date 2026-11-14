@@ -184,7 +184,7 @@ def printable(user, proposal_id):
     for u in p.get("unpriced", []):
         rows.append("<tr><td>☐</td><td>%s</td><td>any</td><td>?</td></tr>" % html.escape(u["name"]))
     srcs = "".join('<li><a href="%s">%s</a></li>' % (html.escape(s["url"], quote=True), html.escape(s["title"])) for s in p.get("sources", []))
-    return ("<!doctype html><html><head><meta charset='utf-8'><title>Shopping list · Taimi</title><style>body{font-family:system-ui;margin:24px}"
+    return ("<!doctype html><html><head><meta charset='utf-8'><title>Shopping list · Sola</title><style>body{font-family:system-ui;margin:24px}"
             "table{border-collapse:collapse;width:100%%}td,th{border-bottom:1px solid #ddd;padding:6px;text-align:left}</style></head><body>"
             "<h1>Shopping list</h1><p>Trip: %s %s · estimated €%.2f%s</p><table><thead><tr><th></th><th>Item</th><th>Store</th><th>Price</th></tr>"
             "</thead><tbody>%s</tbody></table><h3>Prices found via Exa</h3><ul>%s</ul><script>window.print&&setTimeout(()=>print(),300)</script></body></html>") % (

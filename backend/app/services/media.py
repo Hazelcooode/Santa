@@ -131,7 +131,7 @@ def itinerary_image(user, title, items, subtitle=None, hero_image_url=None):
     hero = safe_url(hero_image_url) if hero_image_url else None
     if hero:
         tr.append({"overlay": {"url": hero}, "width": 1080, "height": 520, "crop": "fill", "gravity": "north", "y": 0})
-        tr.append({"overlay": {"font_family": "Arial", "font_size": 30, "font_weight": "bold", "text": "TAIMI PLAN"},
+        tr.append({"overlay": {"font_family": "Arial", "font_size": 30, "font_weight": "bold", "text": "SOLA PLAN"},
                    "color": "#FFFEFA", "background": "rgb:8B75A9", "gravity": "north_west", "x": 48, "y": 40})
         y = 560
     tr.append({"overlay": {"font_family": "Arial", "font_size": 64, "font_weight": "bold", "text": _txt(title, 34)},
@@ -151,7 +151,7 @@ def itinerary_image(user, title, items, subtitle=None, hero_image_url=None):
             tr.append({"overlay": {"font_family": "Arial", "font_size": 26, "text": _txt(it["where"], 48)}, "color": "#6B6F68",
                        "gravity": "north_west", "x": 330, "y": y + 40})
         y += step
-    tr.append({"overlay": {"font_family": "Arial", "font_size": 24, "text": "Sources checked live with Exa · made with Taimi"},
+    tr.append({"overlay": {"font_family": "Arial", "font_size": 24, "text": "Sources checked live with Exa · made with Sola"},
                "color": "#9A9C95", "gravity": "south_west", "x": 60, "y": 40})
     url = CloudinaryImage(pid).build_url(transformation=tr, format="png", secure=True)
     return _save(user, "itinerary", {"kind": "itinerary", "url": url, "title": title, "items": items[:8]})

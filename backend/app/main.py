@@ -1,4 +1,4 @@
-"""Taimi backend: FastAPI app serving the API and both existing frontends.
+"""Sola backend: FastAPI app serving the API and both existing frontends.
 
   /            website (src/)            - requires sign-in
   /mobile/     mobile app (mobile/)      - requires sign-in, runs against the API
@@ -31,8 +31,8 @@ async def lifespan(app):
     scheduler.stop()
 
 
-app = FastAPI(title="Taimi API", version="1.0.0", lifespan=lifespan,
-              description="Backend for the Taimi personal assistant (web + mobile). Exa is the agents' only search source.")
+app = FastAPI(title="Sola API", version="1.0.0", lifespan=lifespan,
+              description="Backend for the Sola personal assistant (web + mobile). Exa is the agents' only search source.")
 errors.install(app)
 if settings.cors_origins:
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True,

@@ -166,7 +166,7 @@ def usage(user=CurrentUser):
 
 # ---------------------------------------------------------------- HTML pages
 LOGIN_HTML = """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sign in · Taimi</title><style>
+<title>Sign in · Sola</title><style>
 body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f7f7f3;font-family:'DM Sans',system-ui,sans-serif;color:#353b35}
 .card{background:#fffefa;border:1px solid #e7e8e1;border-radius:18px;padding:32px;width:min(360px,90vw);box-shadow:0 10px 30px rgba(0,0,0,.05)}
 h1{font-family:Manrope,system-ui;margin:0 0 4px;font-size:1.8rem}p{margin:0 0 20px;color:#6b6f68}
@@ -174,7 +174,7 @@ label{display:block;font-size:.8rem;font-weight:600;margin:12px 0 6px}input{widt
 button{margin-top:18px;width:100%;padding:12px;border:0;border-radius:8px;background:#353b35;color:#fff;font:inherit;font-weight:700;cursor:pointer}
 .err{color:#d6744c;font-size:.85rem;min-height:1.2em;margin-top:10px}.hint{font-size:.8rem;background:#ece8f7;border-radius:8px;padding:10px;margin-top:16px}
 .dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:#b8a1d3;margin-right:8px}</style></head><body>
-<form class="card" id="f"><h1><span class="dot"></span>Taimi</h1><p>A little help for life on your own.</p>
+<form class="card" id="f"><h1><span class="dot"></span>Sola</h1><p>A little help for life on your own.</p>
 <label for="e">Email</label><input id="e" name="email" type="email" autocomplete="username" required value="__EMAIL__">
 <label for="p">Password</label><input id="p" name="password" type="password" autocomplete="current-password" required>
 <button type="submit">Sign in</button><div class="err" id="err" role="alert"></div>

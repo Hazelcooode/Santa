@@ -30,8 +30,8 @@ def _int(name, default):
 
 
 class Settings:
-    app_name = "Taimi"
-    agent_name = os.getenv("AGENT_NAME", "Taimi")
+    app_name = "Sola"
+    agent_name = os.getenv("AGENT_NAME", "Sola")
     db_path = os.getenv("TAIMI_DB", str(BACKEND_DIR / "data" / "taimi.sqlite3"))
     session_days = _int("SESSION_DAYS", 14)
     cookie_secure = os.getenv("COOKIE_SECURE", "0") == "1"

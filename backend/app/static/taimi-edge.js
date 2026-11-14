@@ -1,4 +1,4 @@
-/* Taimi edge: the laundry-basket camera and the models that run next to it.
+/* Sola edge: the laundry-basket camera and the models that run next to it.
 
    This file plays the part of the camera hub at home. Everything here runs on
    the user's own machine (in the demo, in this browser tab):
@@ -267,7 +267,7 @@
                 var make = store ? Promise.resolve(store) : analyseHistory();
                 return make.then(function (s) {
                     store = s; saveStore();
-                    step('send', 'Sending ' + s.frames.length + ' summaries to Taimi (no images)…');
+                    step('send', 'Sending ' + s.frames.length + ' summaries to Sola (no images)…');
                     return send(s.frames.map(function (f) { return f.summary; }), true);
                 }).then(function (st2) { busy = false; step('done', 'Plan updated from the camera history'); return st2; },
                         function (e) { busy = false; throw e; });
@@ -300,11 +300,11 @@
                 lastRun = { frameId: id, items: s.items.length, ms: s.processingMs };
                 step('model', 'Models found ' + s.items.length + ' garment' + (s.items.length === 1 ? '' : 's') + ' in ' + (s.processingMs / 1000).toFixed(1) + ' s, on your device',
                      { items: s.items });
-                step('send', 'Sending the summary to Taimi (labels and boxes only, no photo)…', { summary: s });
+                step('send', 'Sending the summary to Sola (labels and boxes only, no photo)…', { summary: s });
                 return send([s], false);
             }).then(function (st) { return route(st, src, id); }).then(function (st) {
                 var f = st.camera.frames[st.camera.frames.length - 1] || {};
-                step('plan', 'Taimi updated the wash plan' + (f.added && f.added.length ? ': new ' + f.added.map(function (a) { return a.name; }).join(', ') : ''));
+                step('plan', 'Sola updated the wash plan' + (f.added && f.added.length ? ': new ' + f.added.map(function (a) { return a.name; }).join(', ') : ''));
                 step('done', 'Done in ' + ((performance.now() - before) / 1000).toFixed(1) + ' s');
                 emit('state', st);
                 if (consented) syncImages();
@@ -316,20 +316,20 @@
     /* The server's router decides whether the agent takes a second look (only with photo consent). */
     var ROUTE_TEXT = {
         sure: 'The camera was sure about every piece: no second look needed',
-        reviewed: "Taimi's agent looked at the photo and worked out what's in the basket",
-        done: "Taimi's agent had already checked this photo",
-        'agent-unavailable': "Taimi's agent isn't available right now: using the on-device result",
-        'agent-failed': "Taimi's agent couldn't read the photo: using the on-device result",
+        reviewed: "Sola's agent looked at the photo and worked out what's in the basket",
+        done: "Sola's agent had already checked this photo",
+        'agent-unavailable': "Sola's agent isn't available right now: using the on-device result",
+        'agent-failed': "Sola's agent couldn't read the photo: using the on-device result",
         'no-image': 'Using the on-device result'
     };
     function route(st, src, id) {
         var unsure = st.camera && st.camera.secondLookNeeded;
         if (!consented) {
-            step('route', unsure ? 'Some pieces overlap. Photos stay on your device, so Taimi uses the on-device result' : 'The camera was sure about every piece');
+            step('route', unsure ? 'Some pieces overlap. Photos stay on your device, so Sola uses the on-device result' : 'The camera was sure about every piece');
             return st;
         }
         if (!unsure) { step('route', ROUTE_TEXT.sure); }
-        else step('route', "Some pieces overlap: sending this photo to Taimi's agent for a second look (you allowed photos)…");
+        else step('route', "Some pieces overlap: sending this photo to Sola's agent for a second look (you allowed photos)…");
         return bytesOf(src).then(function (buf) { return api('POST', '/api/v1/laundry/frames/' + id + '/image', { image: dataUrl(buf) }); }).then(function (r) {
             store.uploaded[id] = true; saveStore();
             if (unsure) step('route', ROUTE_TEXT[(r.route || {}).reason] || ROUTE_TEXT['no-image']);

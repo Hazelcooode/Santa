@@ -1,4 +1,4 @@
-# Figment — mobile app frontend
+# Sola — mobile app frontend
 
 A phone-first companion to the Sola website (repo root). It is a separate, dependency-free prototype (`index.html`, `styles.css`, `data.js`, `app.js`) with fictional data. It does not share code with the website. Only the visual language is shared.
 

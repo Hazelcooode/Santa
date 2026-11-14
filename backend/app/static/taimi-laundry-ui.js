@@ -1,4 +1,4 @@
-/* Taimi laundry UI pieces shared by the mobile app and the website.
+/* Sola laundry UI pieces shared by the mobile app and the website.
 
    - evidence(st)      photos-only evidence for the "Laundry basket" card: each photo
                        with a box around every garment that was recognised. Shown
@@ -149,7 +149,7 @@
             if (!b || !root.contains(b)) return;
             var a = b.getAttribute('data-tl');
             if (a === 'allow') {
-                if (!window.confirm('Let basket photos leave this device?\n\nTaimi will show them here as evidence, and when the camera is unsure, Taimi\'s agent will look at the photo. You can stop any time; shared photos are then deleted.')) return;
+                if (!window.confirm('Let basket photos leave this device?\n\nTaimi will show them here as evidence, and when the camera is unsure, Sola\'s agent will look at the photo. You can stop any time; shared photos are then deleted.')) return;
                 b.disabled = true;
                 window.TaimiEdge.setImageConsent(true);
             } else if (a === 'revoke') {
@@ -187,7 +187,7 @@
         if (!procEl) return;
         if (!steps.length) { procEl.hidden = true; return; }
         procEl.hidden = false;
-        var head = running ? '<span class="tl-spin"></span><span>Taimi is working…</span>' : '<span class="tl-ok">✓</span><span>' + esc(summaryText || 'Plan updated') + '</span>';
+        var head = running ? '<span class="tl-spin"></span><span>Sola is working…</span>' : '<span class="tl-ok">✓</span><span>' + esc(summaryText || 'Plan updated') + '</span>';
         procEl.innerHTML = '<summary>' + head + '<span class="tl-chev">▾</span></summary><ol>' + steps.map(function (s, i) {
             var now = running && i === steps.length - 1;
             return '<li class="' + (now ? 'now' : '') + (s.err ? ' err' : '') + '"><span class="tl-dot"></span><time>' + new Date(s.at).toTimeString().slice(0, 8) + '</time><span>' + esc(s.text) + '</span></li>';

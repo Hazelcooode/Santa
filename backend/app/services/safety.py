@@ -96,14 +96,14 @@ def checkin(user, verification):
     db.run("DELETE FROM locations WHERE user_id=? AND at<?", (user["id"], db.iso(now)))
     for esc in db.q("SELECT * FROM escalations WHERE user_id=? AND status='sent'", (user["id"],)):
         db.run("UPDATE escalations SET status='resolved', resolved_at=? WHERE id=?", (db.iso(), esc["id"]))
-        messaging.send(user, messaging.contacts(user), "Update from Taimi: %s just checked in and is okay 💚" % user["display_name"], "escalation", esc["id"])
+        messaging.send(user, messaging.contacts(user), "Update from Sola: %s just checked in and is okay 💚" % user["display_name"], "escalation", esc["id"])
     return status(user)
 
 
 def _escalation_message(user, due):
     pts = trail(user)
     last = last_checkin(user)
-    lines = ["⚠️ Taimi safety alert", "%s hasn't confirmed their check-in (due %s)." % (
+    lines = ["⚠️ Sola safety alert", "%s hasn't confirmed their check-in (due %s)." % (
         user["display_name"], due.astimezone(calendar.tz(user)).strftime("%a %H:%M"))]
     lines.append("Last confirmed: %s." % (db.parse_iso(last["confirmed_at"]).astimezone(calendar.tz(user)).strftime("%a %d %b %H:%M") if last else "never"))
     if pts:
@@ -168,7 +168,7 @@ def sos(user, verification, sos_type=None, location=None, police=False):
     db.run("INSERT INTO sos_events(id,user_id,at,type,lat,lng,accuracy_m,police,status) VALUES(?,?,?,?,?,?,?,?,?)",
            (sid, user["id"], db.iso(), sos_type, lat, lng, acc, 1 if police else 0, "active"))
     where = ("https://maps.google.com/?q=%.5f,%.5f (±%d m)" % (lat, lng, acc)) if lat is not None else "location unavailable"
-    body = "🆘 SOS from %s via Taimi%s. Exact location: %s. Live location updates every 10 s until they're safe." % (
+    body = "🆘 SOS from %s via Sola%s. Exact location: %s. Live location updates every 10 s until they're safe." % (
         user["display_name"], (" (" + sos_type + ")") if sos_type else "", where)
     messaging.send(user, messaging.contacts(user, include_police=False), body, "sos", sid)
     if police:
@@ -252,7 +252,7 @@ def review_door(user, event_id, action):
     sent = []
     if action == "alert":
         local = db.parse_iso(row["at"]).astimezone(calendar.tz(user)).strftime("%H:%M")
-        sent = messaging.send(user, messaging.contacts(user), "🚪 Taimi door alert for %s: %s at %s. %s. Clip saved on their phone." % (
+        sent = messaging.send(user, messaging.contacts(user), "🚪 Sola door alert for %s: %s at %s. %s. Clip saved on their phone." % (
             user["display_name"], row["title"], local, row["detail"] or ""), "door", event_id)
     return {"ok": True, "sentTo": sent}
 

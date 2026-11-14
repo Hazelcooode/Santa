@@ -1,5 +1,5 @@
 /* =========================================================
-   Figment — app logic (routing, screens, interactions)
+   Sola — app logic (routing, screens, interactions)
    ========================================================= */
 (function () {
     'use strict';
@@ -263,7 +263,7 @@
         { deco: 'deco-garland', tint: 'lavender', rot: [-0.8, 1], delay: .2, cls: '-mt-4',
           kicker: 'Organiser', title: 'Book laundry slot', sub: function () { return 'clean clothes: ' + minRunway() + ' days left'; }, label: 'Done', doneLabel: 'Booked', href: '#/laundry' },
         { deco: 'deco-bell', tint: 'green', rot: [0.8, -1.2], delay: .8, cls: 'mt-4',
-          kicker: 'Companion', title: 'Catch up with Ginger', sub: function () { return 'how was your day?'; }, label: 'Chatted', doneLabel: 'Chatted', href: '#/chat' },
+          kicker: 'Companion', title: 'Catch up with Sola', sub: function () { return 'how was your day?'; }, label: 'Chatted', doneLabel: 'Chatted', href: '#/chat' },
         { deco: 'deco-cane', tint: 'peach', rot: [-1.2, 0.6], delay: .3, cls: '',
           kicker: 'Health', title: '20-min daylight walk', sub: function () { return 'sleep\'s been short'; }, label: 'Done', doneLabel: 'Walked', href: '#/health' },
         { deco: 'deco-orange-ball', tint: 'lavender', rot: [1, -1], delay: 1, cls: 'mt-12',
@@ -510,7 +510,7 @@
                 return '<li><div class="grow"><div class="item-title">' + esc(p.store.name) + '</div><div class="item-sub">' + p.lines.length + ' items · delivery tomorrow 10–12</div></div><div class="bold">' + euro(p.total) + '</div></li>';
             }).join('') + '<li><div class="grow item-sub">Delivery fees</div><div class="small bold">' + euro(fee) + '</div></li>' +
             '<li><div class="grow item-title">Total</div><div class="bold">' + euro(r.total + fee) + '</div></li></ul></div>' +
-            '<p class="tiny muted">Payment happens in each store\'s own checkout. Figment never stores your card.</p>' +
+            '<p class="tiny muted">Payment happens in each store\'s own checkout. Sola never stores your card.</p>' +
             '<div class="sheet-actions"><button class="pill outline" data-x type="button">Cancel</button><button class="pill brand" data-ok type="button">Place order</button></div>',
             function (root) {
                 $('[data-x]', root).addEventListener('click', closeSheet);
@@ -607,7 +607,7 @@
     var SLOT_MAP = [['t', 't', 'b', 'b', 'f'], ['f', 'b', 'b', 'f', 'f'], ['t', 'f', 'f', 'b', 'f']];
     var BEST = '1-0';
 
-    // With the Taimi backend: the basket camera's on-device models feed the basket,
+    // With the Sola backend: the basket camera's on-device models feed the basket,
     // wardrobe and advice; the cards below show the plan and the photo evidence.
     var TL = function () { return window.TaimiLaundryUI; };
     function laundryState() { return TL() ? TL().state() : null; }
@@ -944,7 +944,7 @@
     function confirmReachOut(m, d) {
         var c = S.contacts.filter(function (x) { return x.on && !x.police; })[0];
         if (!c) { toast('Add an emergency contact in Me first'); return; }
-        var msg = 'Hi ' + c.name + ', it\'s Figment, ' + S.user.name + '\'s assistant. ' + S.user.name + ' asked me to let you know they could use some company today. Maybe give them a call? 💛';
+        var msg = 'Hi ' + c.name + ', it\'s Sola, ' + S.user.name + '\'s assistant. ' + S.user.name + ' asked me to let you know they could use some company today. Maybe give them a call? 💛';
         openSheet('<h2 id="sheet-title">Message ' + esc(c.name) + '?</h2><p class="lede">Only sent because you said yes. Here\'s exactly what they\'ll get:</p>' +
             '<div class="panel light" style="margin-top:12px"><div class="label-caps">' + esc(c.via) + '</div><p style="margin-top:6px">' + esc(msg) + '</p></div>' +
             '<div class="sheet-actions"><button class="pill outline" data-x type="button">Cancel</button><button class="pill brand" data-ok type="button">' + I.send + 'Send</button></div>',
@@ -994,8 +994,8 @@
             var kind = b.dataset.call;
             if (kind === 'social') return openSocialSheet();
             var t0 = Date.now(), iv;
-            var gb = '<div class="call-avatar">' + avatarSvg('Ginger') + '</div>';
-            openSheet('<h2 id="sheet-title">' + (kind === 'video' ? 'Video call' : 'Voice call') + ' with Ginger</h2>' +
+            var gb = '<div class="call-avatar">' + avatarSvg('Sola') + '</div>';
+            openSheet('<h2 id="sheet-title">' + (kind === 'video' ? 'Video call' : 'Voice call') + ' with Sola</h2>' +
                 '<div class="panel ' + (kind === 'video' ? 'dark' : 'orange') + '" style="text-align:center;padding:28px 18px">' + gb +
                 '<div class="bold" style="margin-top:10px" id="call-status">Calling…</div>' +
                 (kind === 'video' ? '<div style="position:absolute;right:12px;top:12px;width:62px;height:84px;border-radius:10px;background:#333;display:flex;align-items:center;justify-content:center;font-size:.6rem;color:#aaa">You</div>' : '') +
@@ -1014,12 +1014,12 @@
         });
     });
     function openSocialSheet() {
-        openSheet('<h2 id="sheet-title">Ginger on social</h2><p class="lede">Ginger has its own account, <b>@figment.ginger</b>. It sends you fun finds there, and you can call or video chat through your linked apps.</p>' +
+        openSheet('<h2 id="sheet-title">Sola on social</h2><p class="lede">Sola has its own account, <b>@sola</b>. It sends you fun finds there, and you can call or video chat through your linked apps.</p>' +
             '<div class="panel light" style="margin-top:12px"><ul class="list">' + S.social.map(function (s) {
                 return '<li><div class="grow"><div class="item-title">' + esc(s.name) + '</div><div class="item-sub">' + esc(s.handle) + '</div></div>' + (s.on ? '<span class="badge green">Linked</span>' : '<a class="badge" href="#/me">Link</a>') + '</li>';
             }).join('') + '</ul></div>' +
             '<div class="label-caps" style="margin:16px 0 8px">Recently shared with you</div>' +
-            S.agentPosts.map(function (p) { return '<div class="panel dark" style="margin-bottom:10px"><div class="tiny muted">@figment.ginger · ' + esc(p.when) + '</div><p class="small" style="margin-top:4px">' + esc(p.text) + '</p>' + sourcesHtml(p.sources, 'Found via') + '</div>'; }).join('') +
+            S.agentPosts.map(function (p) { return '<div class="panel dark" style="margin-bottom:10px"><div class="tiny muted">@sola · ' + esc(p.when) + '</div><p class="small" style="margin-top:4px">' + esc(p.text) + '</p>' + sourcesHtml(p.sources, 'Found via') + '</div>'; }).join('') +
             '<div class="sheet-actions"><button class="pill dark" data-x type="button">Close</button></div>',
             function (root) { $('[data-x]', root).addEventListener('click', closeSheet); $$('a[href^="#"]', root).forEach(function (a) { a.addEventListener('click', closeSheet); }); });
     }
@@ -1048,7 +1048,7 @@
     function renderCare() {
         var el = $('#care-panel');
         el.innerHTML = '<div class="panel orange tilt-r">' +
-            '<div class="label-caps">Ginger noticed something</div>' +
+            '<div class="label-caps">Sola noticed something</div>' +
             '<p class="panel-title" style="margin-top:6px;font-size:1.15rem">Hey, your resting heart rate\'s been up and you\'ve slept under 6 h for 3 nights. How are you feeling?</p>' +
             '<div class="chips" style="margin-top:12px">' + MOODS.map(function (m) { return '<button class="chip' + (UI.mood === m.id ? ' on' : '') + '" data-mood="' + m.id + '" type="button">' + m.t + '</button>'; }).join('') + '</div>' +
             '<div id="care-out"></div></div>';
@@ -1241,7 +1241,7 @@
         $('#ci-sim').addEventListener('click', function () {
             var to = S.contacts.filter(function (x) { return x.on; });
             openSheet('<h2 id="sheet-title">If you miss a check-in</h2><p class="lede">' + c.grace + ' h after the deadline, this goes to ' + esc(to.map(function (x) { return x.name; }).join(', ') || 'your contacts') + ':</p>' +
-                '<div class="panel light" style="margin-top:12px"><p class="small"><b>⚠️ Figment safety alert</b><br>' + esc(S.user.name) + ' hasn\'t confirmed their daily check-in (due ' + c.nextHour + ':00). Last confirmed: ' + (c.last ? esc(new Date(c.last).toLocaleString()) : 'yesterday 20:41') + '.<br><br>Location since then:</p>' +
+                '<div class="panel light" style="margin-top:12px"><p class="small"><b>⚠️ Sola safety alert</b><br>' + esc(S.user.name) + ' hasn\'t confirmed their daily check-in (due ' + c.nextHour + ':00). Last confirmed: ' + (c.last ? esc(new Date(c.last).toLocaleString()) : 'yesterday 20:41') + '.<br><br>Location since then:</p>' +
                 '<ul class="timeline" style="margin-top:8px">' + trail.map(function (p) { return '<li><span class="small bold">' + p.t + '</span> <span class="small">' + p.p + '</span></li>'; }).join('') + '</ul>' +
                 '<div class="map" style="height:110px">' + mapSvg() + '<span class="pin"></span></div></div>' +
                 '<div class="sheet-actions"><button class="pill dark" data-x type="button">Got it</button></div>',
@@ -1284,7 +1284,7 @@
         $('#me-name').textContent = S.user.name;
         // memories
         $('#mem-panel').innerHTML =
-            '<div class="row between"><div><div class="item-title">Let Ginger remember things</div><div class="item-sub">Used to find events, products and chat better</div></div><label class="switch"><input type="checkbox" id="mem-sw"' + (S.memoryConsent ? ' checked' : '') + ' aria-label="Memory"><span class="track"></span></label></div>' +
+            '<div class="row between"><div><div class="item-title">Let Sola remember things</div><div class="item-sub">Used to find events, products and chat better</div></div><label class="switch"><input type="checkbox" id="mem-sw"' + (S.memoryConsent ? ' checked' : '') + ' aria-label="Memory"><span class="track"></span></label></div>' +
             '<hr class="divider">' +
             (S.memories.length ? '<ul class="list">' + S.memories.map(function (m) {
                 return '<li data-id="' + m.id + '"><span class="badge">' + esc(m.tag) + '</span><div class="grow"><div class="item-title" style="font-weight:600">' + esc(m.text) + '</div><div class="item-sub">' + esc(m.date) + '</div></div><button class="icon-btn" data-del type="button" aria-label="Forget this" style="width:28px;height:28px">' + I.x + '</button></li>';
@@ -1326,7 +1326,7 @@
         // social
         $('#social-panel').innerHTML = '<ul class="list">' + S.social.map(function (s) {
             return '<li data-id="' + s.id + '"><div class="grow"><div class="item-title">' + esc(s.name) + '</div><div class="item-sub">' + esc(s.on ? s.handle : 'Not linked') + '</div></div><button class="pill ' + (s.on ? 'outline' : 'dark') + '" type="button">' + (s.on ? 'Unlink' : 'Link') + '</button></li>';
-        }).join('') + '</ul><p class="small muted" style="margin-top:10px">Ginger posts finds from <b>@figment.ginger</b> and can call you on linked apps.</p>';
+        }).join('') + '</ul><p class="small muted" style="margin-top:10px">Sola posts finds from <b>@sola</b> and can call you on linked apps.</p>';
         $$('#social-panel li button').forEach(function (b) {
             b.addEventListener('click', function () {
                 var id = b.closest('li').dataset.id;

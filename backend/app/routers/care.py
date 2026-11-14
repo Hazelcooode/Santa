@@ -140,7 +140,7 @@ def reach_out(body: ReachOutIn, user=CurrentUser):
     c = next((x for x in contacts if x["id"] == body.contactId), contacts[0] if contacts else None)
     if not c:
         raise ApiError(422, "NO_CONTACTS", "Add someone you trust under Me first.")
-    msg = "Hi %s, it's Taimi, %s's assistant. %s asked me to let you know they could use some company today. Maybe give them a call? 💛" % (
+    msg = "Hi %s, it's Sola, %s's assistant. %s asked me to let you know they could use some company today. Maybe give them a call? 💛" % (
         c["name"], user["display_name"], user["display_name"])
     return {"sent": messaging.send(user, [c], msg, "reach_out", None), "message": msg}
 
@@ -322,7 +322,7 @@ def add_contact(body: ContactIn, user=CurrentUser):
     cid = db.new_id("c_")
     db.run("INSERT INTO contacts(id,user_id,name,via,enabled,police,sort) VALUES(?,?,?,?,?,?,?)",
            (cid, user["id"], body.name.strip(), body.via.strip(), 1, 0, 100))
-    messaging.send(user, [{"name": body.name, "via": body.via}], "%s added you as a trusted contact on Taimi. Reply YES to confirm." % user["display_name"],
+    messaging.send(user, [{"name": body.name, "via": body.via}], "%s added you as a trusted contact on Sola. Reply YES to confirm." % user["display_name"],
                    "contact_invite", cid)
     return {"id": cid, "name": body.name, "via": body.via, "on": True, "invite": "sent (simulated)"}
 
@@ -349,5 +349,5 @@ def del_contact(cid: str, user=CurrentUser):
 
 @router.get("/outbox")
 def outbox(user=CurrentUser):
-    """Every message Taimi sent (or would send) on your behalf."""
+    """Every message Sola sent (or would send) on your behalf."""
     return {"items": messaging.outbox(user)}

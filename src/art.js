@@ -1,4 +1,4 @@
-// Shared illustrations: the assistant avatar and the tree from the Figment mobile app (mobile/index.html).
+// Shared illustrations: the assistant avatar and the tree from the Sola mobile app (mobile/index.html).
 // Animation styles live in src/styles.css under "Assistant avatar" and "Hero tree".
 let uid = 0;
 export const avatarSvg = (label = 'Sola, your assistant') => {

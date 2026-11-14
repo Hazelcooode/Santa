@@ -335,10 +335,10 @@ def test_companion_social_calls(client):
     soc = client.get("/api/v1/social").json()["items"]
     tg = [s for s in soc if s["name"] == "Telegram"][0]
     assert client.patch("/api/v1/social/" + tg["id"], json={"linked": True}).json()["items"]
-    assert client.post("/api/v1/calls", json={"kind": "video"}).json()["agent"] == "Taimi"
+    assert client.post("/api/v1/calls", json={"kind": "video"}).json()["agent"] == "Sola"
     assert client.get("/api/v1/companion/posts").json()["items"]
     reach = client.post("/api/v1/chat/reach-out", json={"confirmed": True}).json()
-    assert reach["sent"] and "Taimi" in reach["message"]
+    assert reach["sent"] and "Sola" in reach["message"]
     assert client.post("/api/v1/chat/reach-out", json={"confirmed": False}).status_code == 400
 
 

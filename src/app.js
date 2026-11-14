@@ -41,7 +41,7 @@ function render() {
   <main id="main" tabindex="-1">${({ home: homeView, groceries: groceryView, prices: priceWatchView, laundry: laundryView, discover: discoverView, chat: chatView, safety: safetyView })[page]()}
   <footer>Made for the little things that make a life. <span>Fictional data · No live integrations</span></footer></main></div>`;
   document.querySelector('h1')?.setAttribute('tabindex', '-1');
-  // Served by the Taimi backend: the basket camera's live laundry advice (with evidence).
+  // Served by the Sola backend: the basket camera's live laundry advice (with evidence).
   const live = document.querySelector('#laundry-live');
   if (live && window.TaimiLaundryUI) window.TaimiLaundryUI.mountWeb(live);
 }

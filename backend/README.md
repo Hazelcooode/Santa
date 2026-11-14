@@ -1,4 +1,4 @@
-# Taimi backend
+# Sola backend
 
 Python (FastAPI) backend covering every feature in `final_function_design.md`, compatible with both existing frontends. It serves the API plus the website (`/`) and the mobile app (`/mobile/`) behind sign-in.
 
@@ -76,7 +76,7 @@ Budget guards (`app/exa_client.py`): a shared SQLite cache with a TTL per kind (
 Run `scripts/fetch_edge_models.sh` once to download the runtime and weights (about 330 MB) into the git-ignored `app/static/vendor/`.
 
 **Router: confidence is never shown to the user.** If any garment in a frame is below 0.8 (`ROUTE_CONFIDENCE`):
-* **Photos allowed** (`camera_images_off_device` consent): the hub uploads the photo. The server stores it only if its SHA-256 matches the reported fingerprint, then gives it to Taimi's agent (`claude-haiku-5-5`, image + the device's guess, structured output). The agent's garment list replaces the device's for that frame.
+* **Photos allowed** (`camera_images_off_device` consent): the hub uploads the photo. The server stores it only if its SHA-256 matches the reported fingerprint, then gives it to Sola's agent (`claude-haiku-5-5`, image + the device's guess, structured output). The agent's garment list replaces the device's for that frame.
 * **Photos not allowed:** the device's result stands. The user sees no photos and no agent results, only a "some pieces are hard to tell apart" note offering the second look.
 
 Without `ANTHROPIC_API_KEY` the agent is unavailable and the on-device result is used. Withdrawing consent deletes the photos and the agent's results, and the plan goes back to the on-device result.

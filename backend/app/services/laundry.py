@@ -206,7 +206,7 @@ def update_wardrobe(user, wardrobe):
 #   * every item >= ROUTE_CONFIDENCE  -> the on-device result is used;
 #   * anything below it               -> if the user allows camera images to
 #     leave the device, the photo (checked against its fingerprint) goes to
-#     Taimi's agent, which works out what is in the basket; otherwise the
+#     Sola's agent, which works out what is in the basket; otherwise the
 #     on-device result is used and the user is offered the second look.
 # Without that consent the user never sees photos or agent results.
 IMAGE_CONSENT = "camera_images_off_device"
@@ -268,7 +268,7 @@ def needs_second_look(summary):
 
 
 def timeline(user):
-    """Per frame: the items Taimi uses (agent's if it took a second look and images are
+    """Per frame: the items Sola uses (agent's if it took a second look and images are
     allowed, else the device's) and the basket inventory. Garments get buried under
     newer ones, so a garment counts until the basket is seen empty again."""
     uid = user["id"]
@@ -392,7 +392,7 @@ def camera_info(user):
         "imagesAllowed": allowed, "imagesUploaded": len(have), "consentScope": IMAGE_CONSENT,
         "secondLookNeeded": bool(last and last["secondLook"] and last["source"] != "agent"),
         "agentAvailable": llm.available(),
-        "privacy": "The camera's own models look at each photo on your device and Taimi gets only a summary. "
+        "privacy": "The camera's own models look at each photo on your device and Sola gets only a summary. "
                    "Photos leave the device only if you allow it.",
     }
 
@@ -499,7 +499,7 @@ def suggestions(user, st):
         out.append({
             "id": "second-look", "kind": "check", "tone": "info",
             "title": "Some pieces are hard to tell apart",
-            "detail": "Allow the photos to leave your device and Taimi's agent will take a second look.",
+            "detail": "Allow the photos to leave your device and Sola's agent will take a second look.",
             "evidence": {"why": "Overlapping clothes are hard for the small on-device models.", "facts": [], "frames": [],
                          "sources": [cam_source], "rules": []},
         })
@@ -525,7 +525,7 @@ def _refresh_headline(user, st):
     if llm.available() and sugs:
         facts = [{"title": s["title"], "detail": s["detail"]} for s in sugs[:5]]
         text = llm.complete(
-            "You are Taimi, a warm, concise personal assistant. Write ONE sentence (max 28 words) telling the user the most "
+            "You are Sola, a warm, concise personal assistant. Write ONE sentence (max 28 words) telling the user the most "
             "important laundry step right now. Use only the facts given; do not add numbers, days or items that are not in them.",
             [("user", json.dumps(facts, ensure_ascii=False))], max_tokens=1024)
         if text:
@@ -540,7 +540,7 @@ REVIEW_SCHEMA = llm.obj({"items": {"type": "array", "items": llm.obj({
     "bbox": {"type": "array", "items": {"type": "number"}},
 })}})
 REVIEW_PROMPT = (
-    "You are Taimi's laundry agent. You get one photo from the user's laundry-basket camera, taken from above, and what the "
+    "You are Sola's laundry agent. You get one photo from the user's laundry-basket camera, taken from above, and what the "
     "small on-device models thought they saw (they were unsure). List every garment visible in the basket, including ones "
     "partly covered by others. Ignore the basket itself. For each give: label (dark_tshirt / white_tshirt / colour_tshirt by "
     "the T-shirt's colour; knitwear for cardigans and jumpers; joggers for sweatpants and track pants; jeans only for denim; "

@@ -2,7 +2,7 @@
 consented memories, background interest research shared from the agent's own
 social account, and calls.
 
-Safety rules: on signs of crisis Taimi only *asks* for permission to contact a
+Safety rules: on signs of crisis Sola only *asks* for permission to contact a
 trusted person and shows support lines; it never sends anything without an
 explicit yes, and never encourages harmful behaviour."""
 import re
@@ -120,7 +120,7 @@ TOOLS = [
          "recent_only": {"type": "boolean", "description": "Only results from the last 30 days (events, news, what's on)."}},
          "required": ["query"], "additionalProperties": False}},
     {"name": "read_my_data",
-     "description": "Read the user's own data in Taimi (not a web search): 'sleep' = last nights from their watch, "
+     "description": "Read the user's own data in Sola (not a web search): 'sleep' = last nights from their watch, "
                     "'recent_groceries' = what they bought lately, 'shopping_list' = items still to buy.",
      "input_schema": {"type": "object", "properties": {
          "kind": {"type": "string", "enum": ["sleep", "recent_groceries", "shopping_list"]}},
