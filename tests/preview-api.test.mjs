@@ -15,3 +15,9 @@ test('preview saves named lists but never persists unsaved prompts or event outp
  const restored=createPreviewApi(s);assert.equal((await restored('/itineraries')).items[0].title,'Preview weekend');assert.ok((await restored('/price-watches')).items.some(w=>w.name==='My laptop list'));
 });
 test('static strategies display a basket, and custom items remain unknown',async()=>{const api=createPreviewApi(storage());const multi=await api('/shopping/deals',{method:'POST',body:{strategy:'multi'}});assert.ok(multi.plan.length>0);assert.equal(multi.totalMinor,1186);const item=await api('/shopping/items',{method:'POST',body:{name:'New item',qty:6,attributes:{}}});assert.equal(item.quote,null);const single=await api('/shopping/deals',{method:'POST',body:{strategy:'single'}});assert.equal(single.plan.length,1);assert.equal(single.unpriced.length,1);await assert.rejects(api('/itineraries/demo/media',{method:'POST'}),/Python backend/);});
+
+test('offline preview never persists room photos or fakes generated outputs',async()=>{
+ const s=storage(),api=createPreviewApi(s);
+ await assert.rejects(api('/visual-previews',{method:'POST',body:{kind:'space',imageData:'PRIVATE_ROOM_MARKER'}}),/Python backend/);
+ assert.ok(![...s.rows.values()].join('').includes('PRIVATE_ROOM_MARKER'));
+});

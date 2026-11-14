@@ -428,7 +428,7 @@ def test_copenhagen_events_do_not_append_home_city_and_can_be_combined(account,m
     assert client.post('/api/v1/itineraries',json={'choices':[{'searchId':result['searchId'],'resultId':event['id']}]}).status_code==410
 
 
-def test_cloudinary_schedule_rotation_and_three_event_limit_offline(account,monkeypatch):
+def test_cloudinary_schedule_legacy_rotation_removal_and_three_event_limit_offline(account,monkeypatch):
     from app.services import media,plans
     from app import auth
     import cloudinary
@@ -460,9 +460,11 @@ def test_cloudinary_schedule_rotation_and_three_event_limit_offline(account,monk
     assert client.post(base,json={'kind':'teasers','eventIds':[events[3]['id']]}).status_code==400
     assert client.post(base,json={'kind':'teasers','eventIds':[events[0]['id']]}).status_code==201
     assert len(multis)==3
-    rotation=media.rotation_video(user,['https://photos.example/product.jpg'],'Boots')
-    assert '2D' in rotation['mode'] and rotation['url'].endswith('.mp4')
-    assert len(multis)==4
+    from app.errors import ApiError
+    with pytest.raises(ApiError) as old_rotation:
+        media.rotation_video(user,['https://photos.example/product.jpg'],'Boots')
+    assert old_rotation.value.code=='LEGACY_ROTATION_REMOVED'
+    assert len(multis)==3
 
 
 def test_product_image_parser_and_private_urls_rejected(monkeypatch):

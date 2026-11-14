@@ -233,7 +233,7 @@ def save_watch_options(wid: str, body: SaveOptionsIn, user=CurrentUser):
     return watches.save_options(user,wid,body.count,body.name)
 
 
-@router.post('/price-watches/{wid}/options/{oid}/rotation', status_code=201)
+@router.post('/price-watches/{wid}/options/{oid}/rotation', status_code=202)
 def rotate_watch_option(wid: str,oid: str,user=CurrentUser):
     try:
         return watches.rotate_option(user,wid,oid)
@@ -319,3 +319,46 @@ def save_researched_list(body: SaveResearchIn,user=CurrentUser):
 @router.get('/media/{mid}/playback')
 def play_media(mid: str,user=CurrentUser,range_header: Optional[str]=Header(None,alias='Range')):
     return media.playback(user,mid,range_header)
+
+
+class VisualPreviewIn(BaseModel):
+    kind: str = Field(..., pattern='^(space|turn)$')
+    previewMode: str = Field('room', pattern='^(clothing|room|other)$')
+    instructions: str = Field('', max_length=500)
+    optionId: str = Field(..., max_length=100)
+    watchId: Optional[str] = Field(None, max_length=100)
+    saveToken: Optional[str] = Field(None, max_length=100000)
+    imageData: Optional[str] = Field(None, max_length=5600000)
+
+
+@router.post('/visual-previews', status_code=202)
+def create_visual_preview(body: VisualPreviewIn, user=CurrentUser):
+    from ..services import visual_previews
+    return visual_previews.start(user, body.model_dump())
+
+
+@router.get('/visual-previews/{sid}')
+def visual_preview_status(sid: str, user=CurrentUser):
+    from ..services import visual_previews
+    return visual_previews.state(user, sid)
+
+
+@router.delete('/visual-previews/{sid}')
+def close_visual_preview(sid: str, user=CurrentUser):
+    from ..services import visual_previews
+    return visual_previews.close(user, sid)
+
+
+@router.get('/visual-previews/{sid}/content')
+def visual_preview_content(sid: str, download: bool=False, user=CurrentUser,
+                           range_header: Optional[str]=Header(None, alias='Range')):
+    from ..services import visual_previews
+    return visual_previews.content(user, sid, range_header, download)
+
+
+@router.get('/product-images/{key}')
+def product_cutout(key: str, user=CurrentUser):
+    from ..services import product_media
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(product_media.cleaned(key)['url'], status_code=307,
+                            headers={'Cache-Control': 'private, max-age=3600'})

@@ -37,3 +37,8 @@ Companion chat should be clear that it is an assistant, support user agency, and
 Raw media: never stored server-side. Public excerpts: short task/evidence TTL, configurable by source type. Research task content and chat: opt-in persistence with a proposed 30-day default and deletion controls. Preference memories: explicit user approval, editable and removable individually. Location: no collection in MVP; any future feature needs purpose-specific short retention. Approval records: minimized retention chosen with the product's actual operating requirements, not indefinite by default.
 
 Before a real launch, finalize retention periods, export/delete behavior, provider data-processing terms and deployment jurisdiction. Verify deletion across database, caches, jobs and backups. Do not claim regulatory compliance from this specification alone.
+
+
+## Cloudinary product studio update
+
+[Current implementation and use cases](cloudinary-studio.md): list-level environment previews from one app-found product and one uploaded photo, download-only temporary results, cleaned transparent product photos, and AI-generated 45° left/right three-second object turns. Room media is private and cleaned up on close/expiry; public product cutouts are cached. Generation requires Cloudinary add-on access and is tested with mocked APIs only.

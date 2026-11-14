@@ -33,11 +33,15 @@ Existing schedule images are not regenerated automatically; click **Recreate the
 
 Source URLs for explicitly saved successful quotes are retained for product links/history. Temporary rejected-source diagnostics are not persisted. The existing Exa budget ledger and shared retrieval cache remain operational; they are not a restorable frontend research history.
 
-### Product images and video
+### Cloudinary product studio
 
-When Cloudinary is configured, product photo delivery URLs request the same 480×320 padded size, automatic quality and format. Missing photos and image-delivery errors display only the existing Sola mascot with a sad expression. Its SVG animation hooks are removed and animation is disabled.
+All grocery and watch product photos now use uploaded Cloudinary assets with background removal, mild enhancement and transparent 640×640 padding. Original merchant photos are never a UI fallback. Missing watch photos use the static sad Sola mascot. Pending cutouts are retried before falling back.
 
-Rotation players use `playsinline`, metadata preloading and an authenticated same-origin `/api/v1/media/{id}/playback` stream. The backend checks ownership, permits Cloudinary delivery URLs only, forwards one byte range, and returns inline `video/mp4` with range headers. A direct-video link is also provided. This addresses embedding/MIME/download-header issues without exposing provider credentials. Real account rendering/playback still needs a later live check; no real provider calls were made during this implementation.
+**Preview in your space** is a list-level action on current research and saved lists. Choose one app-found product and upload one environment photo. The browser resizes/re-encodes it before uploading. Cloudinary generates a contextual replacement or addition with approximate proportions. Only viewing/downloading is offered; there is no account gallery. Closing, Escape or navigation revokes access and requests deletion; abandoned sessions expire after 15 minutes and failed provider deletions are retried.
+
+**Generate 3D turn** requests AI object yaw 45° left and right with a fixed camera. The four-second generated motion is accelerated into a three-second MP4. Unseen geometry is inferred, not measured. The old flat/mirrored image animation is removed. Generation is user-requested and temporary, not persisted on a watch.
+
+See [Cloudinary studio](cloudinary-studio.md) for setup, privacy, add-on permissions, APIs, cleanup details and use cases. CLOUDINARY_URL alone does not activate the required generation add-ons. Real API outputs have not been tested.
 
 ## API and persistence changes
 
@@ -62,4 +66,7 @@ For an old grocery quote, explicitly choose Update prices to collect the new str
 
 Offline validation uses fake Exa/Cloudinary responses, temporary databases and mocked video bytes. Regression checks cover identity/attribute binding, no auto-lookup on item changes, saved-quote strategies and quantities, temporary output lifetime, named-list ownership/proofs, no-photo themed schedules, video range/MIME handling, collapsed trips and static sad mascots. Browser checks use a disposable fictional-data preview. External provider results were not tested.
 
-Cloudinary reference: https://cloudinary.com/documentation/fetch_remote_images
+Cloudinary reference: [background removal](https://cloudinary.com/documentation/background_removal). Background removal does not support fetched images; the backend uploads product sources first.
+
+
+Latest UI update: [preview modes and compact shopping UI](frontend.md#preview-modes-and-compact-shopping-ui). Cloudinary placement now separates clothing/paired-shoe try-on, room items and other contexts, prioritizes generation quality and preserves photo orientation. Object turns start on warm beige. Shop totals expand to text-only item breakdowns, with missing quotes crossed out. The main basket total sits below the item results.

@@ -25,27 +25,26 @@ Lookups remain bounded by the existing Exa budgets and request quota. Per-shop c
 
 ## Price watch and product media
 
-1. Create a watch with a product/type, requirements, city/country and currency. Websites are optional; an empty list searches the open web within your location scope. Add websites to restrict results.
-2. **Check prices** requires an explicit full-item display price and evidence that the exact option is available to purchase now. Unknown availability, sold-out and preorder options are excluded. Availability is a source claim at check time and may change before checkout.
-3. Up to ten successful options, including image/source links, are stored in the watch. All accepted options create price observations for that check, rather than just the cheapest. Your latest successful output is restored after sign-out/sign-in. A miss retains the earlier output with its original timestamp.
-4. Use **Save best 1 / 5 / 10** to keep that many available results (or fewer if fewer were found), ordered by full-item price. The saved selection survives later checks. This replaces that watch's saved selection; latest results and observation history remain separate.
-5. Each saved option has **Create photo rotation**. The Python backend first tries Product JSON-LD and Open Graph image URLs from the source product page, with existing Exa image URLs as a fallback. Remote HTML reads are bounded; private/local addresses and unsafe redirects are rejected. The source must make photos accessible.
-6. Cloudinary's Python SDK uploads normalized frames and assembles an MP4. Multiple photos create a gallery animation (photos may have different camera angles). One photo creates an explicitly labeled 2D animation. It does not reconstruct the unseen back of a product or claim to be a verified 360-degree view. A true turntable needs properly ordered multi-angle photos or a 3D asset. Playback and the generated link are saved with the option.
+Research first, then explicitly name/save the best 1/5/10 available full-price options. Websites are optional. Named lists retain their prompts, selected options and manual/automatic update interval. Unsaved input and source diagnostics are temporary; sign-in restores saved lists, not the last unsaved search. Successful quotes contribute observations; misses retain earlier saved results with their timestamps.
 
-History is monitoring from the first successful observation onward, not a backfill of past retailer prices. Earlier observations remain as recorded and may predate the stricter validation rules. Recent check attempts (up to 20) are shown separately.
+Every list has **Preview in your space**: choose one app-found product, upload an environment photo, then view/download the Cloudinary-generated placement. Results are temporary, private and deleted on close/expiry with durable provider-failure retries. No gallery is created.
+
+All grocery/watch product photos are background-removed, gently enhanced and normalized to transparent 640×640 PNGs. Each product can generate an inferred **3D turn** (45° left/right, three-second playback). Flat photo spins are removed. Generation is only on request, requires Cloudinary add-on access and is not a measured fit or verified 3D model. [Full setup, walkthrough and lifecycle](cloudinary-studio.md).
+
+History starts with the first successful observation; it does not backfill past retailer prices. Grocery refresh does not start automatically when adding an item.
 
 ## Events and combined trips
 
 1. In **Discover**, enter a prompt such as `Copenhagen, Christmas markets`. The search no longer appends the home city to a nonempty prompt. An optional destination/country override and date interval make the target explicit. Home-country search bias is removed for a prompt-selected destination unless an explicit destination country is supplied.
 2. Structured extraction must confirm the event's location matches the request. Nonmatching locations are excluded. Event start/end dates and local times are extracted separately from publication dates. Ongoing date-range events are allowed until their end date; missing times/prices remain unknown.
-3. Research outputs are saved automatically to your account. Choose them again under **Saved research outputs** after signing back in. Tick events across different searches, enter a trip name and press **Save selected events as a trip**. One selected event saves a standalone event plan. Up to eight unique events/options can form one plan, ordered by known start dates. You still need to choose a visit time within an opening window and review travel feasibility.
+3. Unsaved research is temporary and is not restored after navigation or sign-in. Tick chosen events across searches, enter a trip name and press **Save selected events as a trip**. Up to eight unique events can form one plan. Saved plans restore collapsed; choose a new prompt to research again.
 4. Saved trips retain titles, dates/ranges, times, price text/currency where provided, venue, images and source links. They are plans, not bookings. Unknown prices are not added as zero to a fabricated trip total.
-5. Press **Create schedule image** for a Cloudinary-rendered PNG card with a real source hero image when available, schedule rows and source price text. Click the image/link to open it for sharing.
+5. Press **Create themed schedule image** for a colourful illustrated timetable based on the selected events' themes, schedule, venue and price. It uses a generated SVG delivered as PNG through Cloudinary, never an event hero photo.
 6. Tick **Include in event video previews** for 1–3 events with source photos, then request previews. Cloudinary creates short vertical photo-motion clips, a poster and slideshow using the Python SDK and transformations. These illustrate actual source imagery; they are labeled animated photos, not footage of the event taking place. Events without real photos cannot be selected. At most three distinct events per saved trip can have previews, including clips generated earlier. Retrying reuses completed clips. Generated media stays on the saved trip after sign-in.
 
 ## Jury walkthrough
 
-Research events in the destination you choose, select three events across searches, save one named trip, generate its schedule card and three source-photo previews. Then open a saved product watch, show several priced/available options and request a product-photo rotation. The judge can inspect original event/product sources alongside the generated media. This connects research, decision-making, persistence and meaningful Cloudinary transformations in one flow.
+Research events in the destination you choose, select three events across searches, save one named trip, generate its schedule card and three source-photo previews. Then open a saved product watch, show several priced/available options and open Preview in your space or request an inferred 3D object turn. The judge can inspect original event/product sources alongside the generated media. This connects research, decision-making, persistence and meaningful Cloudinary transformations in one flow.
 
 ## Offline validation and limits
 
@@ -62,16 +61,16 @@ Official transformation reference: https://cloudinary.com/documentation/transfor
 
 ## New persistence and endpoints
 
-- `research_searches`: account-owned query/kind/output snapshots.
+- `research_searches`: historical table; new unsaved event output is not persisted or restored.
 - `saved_itineraries`: account-owned selected source snapshots plus schedule/teaser assets.
-- Existing watch JSON: `lastOffers`, `savedOptions`, `pricingVersion`, bounded check attempts and diagnostics. All qualifying options are inserted into existing `price_observations`.
+- Watch JSON stores named `savedOptions`, exact prompts, schedules and bounded check notices; unsaved offers and diagnostics are excluded. Successful quotes enter `price_observations`.
 - Existing `media_assets`: generated Cloudinary URLs/metadata, owned by the user.
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | POST | `/api/v1/price-watches/{id}/options` | Save best 1/5/10 from last successful output |
-| POST | `/api/v1/price-watches/{id}/options/{optionId}/rotation` | Generate product photo animation on request |
-| GET | `/api/v1/research-searches` | Restore up to 50 recent research outputs |
+| POST | `/api/v1/price-watches/{id}/options/{optionId}/rotation` | Start temporary generative object-turn session (202) |
+| GET | `/api/v1/research-searches` | Returns empty; unsaved research is not restored |
 | GET, POST | `/api/v1/itineraries` | List/create saved event/trip plans |
 | DELETE | `/api/v1/itineraries/{id}` | Remove a saved trip |
 | POST | `/api/v1/itineraries/{id}/media` | Generate schedule or up to three event teasers |

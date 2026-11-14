@@ -84,37 +84,8 @@ def _clean_urls(urls, limit):
 
 
 def rotation_video(user, image_urls, title=None, fmt="mp4", frames=12):
-    cloudinary = _require()
-    import cloudinary.uploader
-
-    urls = _clean_urls(image_urls, 24)
-    if not urls:
-        raise ApiError(400, "INVALID_INPUT", "Send at least one product image URL (or data URL).")
-    tag = _tag(user, "spin", "|".join(urls) + fmt)
-    folder = "%s/%s" % (settings.cloudinary_folder, user["id"][-8:])
-    if len(urls) >= 2:  # source product gallery; angles may vary
-        for i, u in enumerate(urls):
-            cloudinary.uploader.upload(u, folder=folder, public_id="%s_%02d" % (tag, i), tags=[tag], overwrite=True,
-                                       transformation=[{"width": 720, "height": 720, "crop": "pad", "background": "white"}])
-        mode = "product gallery (different photos; camera angles may vary)"
-    else:  # pseudo-3D turntable from one photo
-        import math
-        base = cloudinary.uploader.upload(urls[0], folder=folder, public_id=tag + "_src", overwrite=True)
-        for i in range(frames):
-            theta = 2 * math.pi * i / frames
-            f = max(0.06, abs(math.cos(theta)))
-            steps = [{"width": 720, "height": 720, "crop": "pad", "background": "white"},
-                     {"width": max(40, int(720 * f)), "height": 720, "crop": "scale"}]
-            if math.pi / 2 < theta < 3 * math.pi / 2:
-                steps.append({"angle": "hflip"})
-            steps.append({"width": 720, "height": 720, "crop": "pad", "background": "white"})
-            cloudinary.uploader.upload(base["secure_url"], folder=folder, public_id="%s_%02d" % (tag, i), tags=[tag], overwrite=True,
-                                       transformation=steps)
-        mode = "single-photo animation (2D; not a real 360-degree view)"
-    res = cloudinary.uploader.multi(tag, format=fmt, delay=110 if len(urls) < 2 else 180,
-                                    transformation=[{"width": 720, "height": 720, "crop": "pad", "background": "white"}])
-    return _save(user, "rotation", {"kind": "rotation", "mode": mode, "title": title, "url": res.get("secure_url") or res.get("url"),
-                                    "format": fmt, "frames": frames if len(urls) < 2 else len(urls), "tag": tag})
+    raise ApiError(410, 'LEGACY_ROTATION_REMOVED',
+                   'Flat photo rotation has been removed. Choose Generate 3D turn on a Price watch result.')
 
 
 def _canvas(cloudinary):
@@ -281,10 +252,8 @@ def product_images(url, known=None):
 
 
 def image_thumbnail(url):
-    if not safe_url(url):return None
-    if not configured():return url
-    from cloudinary import CloudinaryImage
-    return CloudinaryImage(url).build_url(type='fetch',width=480,height=320,crop='pad',background='rgb:f7f7f3',quality='auto',fetch_format='auto',secure=True)
+    from .product_media import thumbnail
+    return thumbnail(url)
 
 
 def playback(user,mid,range_header=None):

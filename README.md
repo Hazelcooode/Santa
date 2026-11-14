@@ -26,3 +26,6 @@ npm run build
 ```
 
 The mobile interface is a phone-oriented web application, not a native package. `dist/` contains only the static UI demo, not the FastAPI service. The original [challenge](challenge.txt), [ideas](ideas.txt) and [design docs](docs/README.md) are preserved.
+
+
+Product media: [Cloudinary studio setup and walkthrough](docs/cloudinary-studio.md). Price watch now offers list-level **Preview in your space**, temporary download-only outputs and **Generate 3D turn**. Product photos are cleaned and normalized through Cloudinary with no original-image fallback.

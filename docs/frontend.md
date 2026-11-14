@@ -67,10 +67,23 @@ Watches show the last check notice and **Why pages were excluded**. History disp
 
 ## Saved outputs, trip builder and media controls
 
-See [the current workflow](media-and-trips.md). Groceries offers explicit selected-shop/nearby discovery modes, per-shop lookup coverage and no navigation count badge. Watches make websites optional, restore latest and saved options, offer Save best 1/5/10, and generate product-photo animations only on request. Discover restores research outputs, selects up to eight events across queries, saves standalone events or combined trips, and generates a schedule card plus at most three source-photo event previews. Media playback and source links stay on saved account objects. Unknown availability is excluded from watch offers.
+Discover clears unsaved research on navigation and restores only explicitly saved trips, initially collapsed. Saved trip details contain themed schedule posters and up to three event teasers. Price watch saves named lists and their prompts/schedules; current input and diagnostics are temporary.
+
+Product photos use Cloudinary background removal, enhancement and equal 640×640 padding. The UI never uses an original merchant photo as a fallback. `product-images.js` retries pending cutouts; missing watch photos show the static sad mascot.
+
+`space-preview.js` provides a native modal, opened by **Preview in your space** at list level. Select one app-found product, upload one environment photo, generate, view/download and close. Browser preprocessing limits image dimensions and removes metadata. No uploads or generated results enter localStorage. Escape, closing, page exit and `unmountWatches` clear object URLs and request deletion. If a create request completes after close, its returned session is immediately closed too.
+
+Each product also has **Generate 3D turn**, using the same temporary session UI without a room upload. The player uses the owned same-origin stream with inline MP4 playback. AI proportions and unseen sides are explicitly approximate. See [Cloudinary studio](cloudinary-studio.md) for service setup, limits and cleanup semantics.
 
 
 Current UI: see [the screenshot-based redesign](ui-redesign.md) for shared layouts, static/connected modes, individual-event filtering and itinerary exports.
 
 
 Latest behaviour: [manual grocery pricing, strict attributes, temporary research and named lists](current-behavior.md). This supersedes earlier automatic-lookup and restored-research descriptions.
+
+
+## Preview modes and compact shopping UI
+
+The preview dialog now offers Clothing/shoes, Room item/furniture, and Other placement, with optional user instructions and a prominent AI-quality warning. Room and clothing prompts are separate; paired shoes are treated as a pair when both feet are visible. Object turns use a beige Cloudinary-prepared start frame and a matching background prompt.
+
+The app has one account/preferences control in the sidebar. Version, session/date strip and the global backend banner are removed; simulations remain labeled in the relevant flows. Groceries removes the percentage-comparison hero card and moves the known basket total below item results. Each shop basket expands to a compact image-free list of the lowest current per-item quote, quantity-adjusted amount and merchant link. Missing quotes are crossed out and labeled No current quote. Shops are grouped by website hostname rather than inconsistent extracted store labels; partial totals remain distinguished from complete baskets.

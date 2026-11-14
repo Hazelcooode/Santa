@@ -8,6 +8,7 @@ from datetime import timedelta
 from .. import db, exa_client, search_scope
 from ..config import settings
 from ..errors import ApiError
+from . import product_media
 
 _locks = {}
 _guard = threading.Lock()
@@ -145,7 +146,7 @@ def attach(user, item):
             continue
         seen.add(q['url'])
         offers.append({'id': q['id'], 'priceMinor': q['price_minor'], 'currency': q['currency'], 'store': q['store'], 'url': q['url'],
-                       'product': q['product'], 'image': q.get('image_url'), 'priceBasis': q.get('price_basis') or 'package', 'fetchedAt': q['fetched_at'], 'expiresAt': q['expires_at'], 'stale': db.parse_iso(q['expires_at']) <= db.now(),
+                       'product': q['product'], 'image': product_media.thumbnail(q.get('image_url')), 'priceBasis': q.get('price_basis') or 'package', 'fetchedAt': q['fetched_at'], 'expiresAt': q['expires_at'], 'stale': db.parse_iso(q['expires_at']) <= db.now(),
                        'mode': q['mode'], 'cached': bool(q['cached']), 'evidence': q['evidence'], 'verification': 'source_claim'})
     fresh = [o for o in offers if not o['stale']]
     item['offers'] = offers[:20]

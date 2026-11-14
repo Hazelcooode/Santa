@@ -66,3 +66,6 @@ The static preview uses `src/preview-api.js`, explicitly gated by `SOLA_LOCAL_PR
 ## Validation
 
 Backend regressions cover event-list rejection, targeted single-event refinement, coherent event details, export ownership, HTML escaping and calendar end-date handling. Frontend tests cover the restored card layouts and the local preview adapter's persistence and rejection of fake live/media results. Both desktop and narrow-screen browser layouts were inspected on disposable preview data, with provider keys blank and the scheduler disabled. Saving a shortlist and building a trip were exercised locally. No real Exa, Gemini or Cloudinary API calls were made. Remote source extraction and provider rendering still require a later live test.
+
+
+Cloudinary studio update: Price watch lists provide **Preview in your space** (choose one found product + upload an environment photo) and **Generate 3D turn**. Room previews are temporary and download-only. Product photos use background removal/enhancement and equal transparent dimensions. See [setup and user journeys](cloudinary-studio.md). Generic flat-photo rotation has been removed.

@@ -126,6 +126,8 @@ def check(user, wid, automatic=False):
     for offer in offers:
         offer['id'] = 'opt_' + hashlib.sha256(offer['url'].encode()).hexdigest()[:16]
         offer['checkedAt'] = data['lastCheckedAt']
+        from . import media
+        offer['thumbnail'] = media.image_thumbnail(next(iter(offer.get('images') or []),None))
     if offers:
         if data.get('savedOptions'):
             data['savedOptions']=offers[:data.get('saveCount') or len(data['savedOptions'])]
@@ -193,21 +195,8 @@ def save_options(user, wid, count, name=None):
 
 
 def rotate_option(user, wid, oid):
-    from . import media
-    row=get(user,wid); data=db.loads(row['data'],{})
-    option=next((o for o in data.get('savedOptions',[])+data.get('lastOffers',[]) if o.get('id')==oid),None)
-    if not option:
-        raise ApiError(404, 'NOT_FOUND', 'Option not found in this watch.')
-    media._require()
-    images=media.product_images(option['url'], option.get('images') or [])
-    result=media.rotation_video(user,images,option['title'])
-    for key in ('savedOptions','lastOffers'):
-        for o in data.get(key,[]):
-            if o.get('id')==oid:
-                o['rotation']=result
-                o['images']=images
-    db.run('UPDATE price_watches SET data=?,updated_at=? WHERE id=?', (db.dumps(data),db.iso(),wid))
-    return result
+    from . import visual_previews
+    return visual_previews.start(user, {'kind': 'turn', 'watchId': wid, 'optionId': oid})
 
 
 _PROOF_KEY=secrets.token_bytes(32)
@@ -240,13 +229,7 @@ def save_research(user,name,count,token,cadence_hours=0):
     name=str(name or '').strip()
     if not name:raise ApiError(400,'LIST_NAME_REQUIRED','Enter a name for this saved list.')
     if count not in (1,5,10):raise ApiError(400,'INVALID_INPUT','Choose 1, 5 or 10 results.')
-    try:
-        encoded,signature=token.rsplit('.',1)
-        if not hmac.compare_digest(signature,hmac.new(_PROOF_KEY,encoded.encode(),hashlib.sha256).hexdigest()):raise ValueError()
-        proof=db.loads(base64.urlsafe_b64decode(encoded))
-        if proof['user']!=user['id'] or proof['expires']<time.time():raise ValueError()
-    except (ValueError,KeyError,TypeError):
-        raise ApiError(410,'RESEARCH_EXPIRED','This temporary result expired. Run the price search again.')
+    proof=research_proof(user,token)
     if not proof['offers']:raise ApiError(409,'NO_OPTIONS','No qualifying offers are available to save.')
     spec=dict(proof['spec'],cadenceHours=cadence(cadence_hours))
     created=create(user,spec);row=get(user,created['id']);data=db.loads(row['data'],{})
@@ -261,3 +244,14 @@ def save_research(user,name,count,token,cadence_hours=0):
 def _watch_spec(data):
     keys=('query','category','mode','city','country','searchScope','searchCountries','details','targetMinor','currency','sites','cadenceHours','buyBy','notify')
     return {key:data[key] for key in keys if key in data}
+
+
+def research_proof(user,token):
+    try:
+        encoded,signature=token.rsplit('.',1)
+        if not hmac.compare_digest(signature,hmac.new(_PROOF_KEY,encoded.encode(),hashlib.sha256).hexdigest()):raise ValueError()
+        proof=db.loads(base64.urlsafe_b64decode(encoded))
+        if proof['user']!=user['id'] or proof['expires']<time.time():raise ValueError()
+    except (ValueError,KeyError,TypeError):
+        raise ApiError(410,'RESEARCH_EXPIRED','This temporary result expired. Run the price search again.')
+    return proof

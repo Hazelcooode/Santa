@@ -105,3 +105,8 @@ CSRF protection for cookie writes, strict CORS allowlist, body-size limits, per-
 ## Product comparison and price watches
 
 Additional search/watch/check/history endpoints and payload semantics are specified in [Price watch](price-watch.md#proposed-api-additions). These remain proposed endpoints; the implemented frontend uses fixtures and local storage.
+
+
+## Implemented Cloudinary studio endpoints
+
+See [Cloudinary studio API](cloudinary-studio.md#api) for temporary `/visual-previews` creation/status/content/deletion and `/product-images/{key}`. Generic flat-photo `/media/rotation` is removed (410). Watch-option `/rotation` now returns a temporary generative job (202), not saved media.

@@ -50,7 +50,10 @@ async def lifespan(app):
     if settings.seed_demo_account:
         seed.ensure_test_account()
     scheduler.start()
+    from .services import visual_previews
+    visual_previews.start_cleanup()
     yield
+    visual_previews.stop_cleanup()
     scheduler.stop()
 
 

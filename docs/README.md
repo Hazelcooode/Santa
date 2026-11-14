@@ -2,7 +2,7 @@
 
 # Implementation documentation
 
-These files describe the intended product and how to implement it. The root README is the source of truth for what currently runs. No backend or model integration exists yet.
+These files describe the intended product and how to implement it. The root README is the source of truth for what currently runs. The current runtime is Python/FastAPI with SQLite; older architecture proposals below are historical.
 
 | Document | What it answers |
 | --- | --- |
@@ -38,3 +38,5 @@ Current UI: see [the screenshot-based redesign](ui-redesign.md) for shared layou
 
 
 Latest behaviour: [manual grocery pricing, strict attributes, temporary research and named lists](current-behavior.md). This supersedes earlier automatic-lookup and restored-research descriptions.
+
+- [Cloudinary product studio](cloudinary-studio.md): environment previews, product cutouts, object turns, setup and deletion lifecycle.

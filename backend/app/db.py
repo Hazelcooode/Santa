@@ -168,6 +168,16 @@ CREATE TABLE IF NOT EXISTS price_observations (
   id TEXT PRIMARY KEY, user_id TEXT NOT NULL, watch_id TEXT NOT NULL, at TEXT NOT NULL,
   price_minor INTEGER, currency TEXT, title TEXT, url TEXT, store TEXT
 );
+CREATE TABLE IF NOT EXISTS product_image_cache (
+  id TEXT PRIMARY KEY, source TEXT NOT NULL, asset_id TEXT, clean_asset_id TEXT
+);
+-- Cleanup ledger only: no room bytes, generated image URLs, prompts or gallery entries.
+CREATE TABLE IF NOT EXISTS visual_sessions (
+  id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL,
+  status TEXT NOT NULL, expires REAL NOT NULL, purge_after REAL NOT NULL,
+  cancelled INTEGER NOT NULL DEFAULT 0, room_id TEXT, result_id TEXT,
+  result_type TEXT DEFAULT 'authenticated', preset TEXT, provider_job TEXT, error TEXT, cleanup_after REAL NOT NULL DEFAULT 0
+);
 CREATE TABLE IF NOT EXISTS media_assets (
   id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL
 );
@@ -270,6 +280,12 @@ def connect(path=None):
                 conn.execute('ALTER TABLE shopping_quotes ADD COLUMN image_url TEXT')
             if 'price_basis' not in quote_columns:
                 conn.execute("ALTER TABLE shopping_quotes ADD COLUMN price_basis TEXT DEFAULT 'package'")
+            image_columns={r[1] for r in conn.execute('PRAGMA table_info(product_image_cache)')}
+            if 'clean_asset_id' not in image_columns:
+                conn.execute('ALTER TABLE product_image_cache ADD COLUMN clean_asset_id TEXT')
+            visual_columns={r[1] for r in conn.execute('PRAGMA table_info(visual_sessions)')}
+            if 'cleanup_after' not in visual_columns:
+                conn.execute('ALTER TABLE visual_sessions ADD COLUMN cleanup_after REAL NOT NULL DEFAULT 0')
             _initialised_paths.add(path)
     _local.conn = conn
     _local.path = path

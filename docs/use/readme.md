@@ -61,3 +61,6 @@ Open **Price watch** in the navigation or visit `http://127.0.0.1:239/#prices`.
 7. Pause/resume, edit the target or remove the watch. Refresh preserves saved watches. Settings → Reset demo data clears them.
 
 To try a custom item, select Other/custom, enter its name and save a watch. It remains “No quote” until a real research integration exists. Ticket variants include route/event, date, time, fare/seat and traveler quantity; shoe/clothing variants include size/color. No monitoring happens in the background and no purchase is performed.
+
+
+Cloudinary studio update: Price watch lists provide **Preview in your space** (choose one found product + upload an environment photo) and **Generate 3D turn**. Room previews are temporary and download-only. Product photos use background removal/enhancement and equal transparent dimensions. See [setup and user journeys](../cloudinary-studio.md). Generic flat-photo rotation has been removed.

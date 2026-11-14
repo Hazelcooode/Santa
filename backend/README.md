@@ -78,3 +78,6 @@ tests/              API + live-path tests (fake Exa)
 
 
 Current price validation, saved research/trips and Cloudinary controls are documented in [the workflow](../docs/media-and-trips.md). The website and mobile web app load shared connected watch/Discover modules. Exa and Cloudinary provider calls were mocked during this update.
+
+
+Cloudinary studio update: Price watch lists provide **Preview in your space** (choose one found product + upload an environment photo) and **Generate 3D turn**. Room previews are temporary and download-only. Product photos use background removal/enhancement and equal transparent dimensions. See [setup and user journeys](../docs/cloudinary-studio.md). Generic flat-photo rotation has been removed.

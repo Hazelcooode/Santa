@@ -84,3 +84,10 @@ See [Price watch database additions](price-watch.md#proposed-database-additions)
 ## Current saved research and itinerary storage
 
 SQLite now also creates `research_searches(id,user_id,query,kind,payload,created_at)` and `saved_itineraries(id,user_id,payload,created_at,updated_at)` with user/time indexes. Their JSON snapshots preserve source event dates/times, price text, image URLs and generated media. Price watch JSON preserves lastOffers, savedOptions and pricingVersion; existing price_observations now store all qualifying options per check (up to ten), not just the best. New grocery context hashes include pricingVersion=2 so old, unvalidated quotes do not silently reappear. Historical rows are retained; they are not blindly rescaled. Generated assets remain in media_assets. See [the workflow](media-and-trips.md).
+
+
+## Cloudinary product media tables (implemented SQLite)
+
+`product_image_cache(id PRIMARY KEY, source, asset_id, clean_asset_id)` maps public source URLs to reusable uploaded product images and cleaned product assets. The UI receives the same-origin cleaned-photo endpoint, never an original-image fallback.
+
+`visual_sessions(id PRIMARY KEY, user_id, kind, status, expires, purge_after, cancelled, room_id, result_id, result_type, preset, provider_job, error, cleanup_after)` is a temporary ownership/deletion ledger. No room bytes, base64, generated URLs or prompt snapshots are stored. Ready sessions expire after 15 minutes. Successful closed-session cleanup removes the row; failed/interrupted identifiers remain for late-result cleanup and provider retries. This is separate from permanent event `media_assets`. Additive migrations run automatically; no separate database server is needed. See [lifecycle](cloudinary-studio.md#persistence-and-deletion).

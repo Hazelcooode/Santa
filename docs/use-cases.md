@@ -123,3 +123,8 @@ For detailed scenarios for multi-shop groceries, opt-in nearby discovery, availa
 
 
 Latest behaviour: [manual grocery pricing, strict attributes, temporary research and named lists](current-behavior.md). This supersedes earlier automatic-lookup and restored-research descriptions.
+
+
+## Cloudinary product studio update
+
+[Current implementation and use cases](cloudinary-studio.md): list-level environment previews from one app-found product and one uploaded photo, download-only temporary results, cleaned transparent product photos, and AI-generated 45° left/right three-second object turns. Room media is private and cleaned up on close/expiry; public product cutouts are cached. Generation requires Cloudinary add-on access and is tested with mocked APIs only.

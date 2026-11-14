@@ -71,3 +71,8 @@ Keep provider-specific tooling in adapters. A privacy router rejects `device-onl
 Create at least 30 representative requests covering groceries, laundry, discovery, ambiguous intent, unavailable prices, dietary restrictions, conflicting evidence, malicious page instructions, unsupported requests and two languages. Hold Exa evidence fixed to compare model quality, then separately test live retrieval. Measure valid schema rate, source fidelity, constraint satisfaction, latency, token usage and measured task cost. Add adversarial cases where the right output is “unknown.”
 
 Try a simple configuration first: one model for all three roles, Exa for retrieval, code for validation. Add mixed providers only when measurements show a useful improvement. Documentation links reviewed 14 November 2026; no benchmark or price advantage is claimed here.
+
+
+## Cloudinary product studio update
+
+[Current implementation and use cases](cloudinary-studio.md): list-level environment previews from one app-found product and one uploaded photo, download-only temporary results, cleaned transparent product photos, and AI-generated 45° left/right three-second object turns. Room media is private and cleaned up on close/expiry; public product cutouts are cached. Generation requires Cloudinary add-on access and is tested with mocked APIs only.

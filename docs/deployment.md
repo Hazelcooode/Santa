@@ -53,3 +53,8 @@ Security controls in this release include ownership-scoped queries, hashed passw
 ## Validation status
 
 Docker Compose configuration was validated. A Docker image build, HTTPS deployment, proxy behavior and Cloudinary transformation outputs have not been verified in this session. The project is packaged for rehearsal, not claimed to be publicly deployed. See the implementation report in the chat for executed tests and remaining limits.
+
+
+## Temporary Cloudinary previews
+
+Use one backend worker process for the bounded in-process generation pool. Keep SQLite on persistent storage; its identifier-only cleanup ledger must survive restarts. The media cleanup thread runs independently of the Exa scheduler, every 15 seconds, retrying provider failures at five-minute intervals. Cloudinary credentials need upload/destroy and signed upload-preset administration permissions, plus Image Generation / Image to Video entitlement. [Setup and privacy details](cloudinary-studio.md#local-setup). No live generation was exercised during this update.

@@ -47,6 +47,7 @@ export function createPreviewApi(storage){
    else if(method==='DELETE'){data.watches=data.watches.filter(v=>v!==w);result={ok:true};}
    else{if(body.paused!==undefined)w.status=body.paused?'paused':'active';Object.assign(w,body,{version:w.version+1});result=w;}
   }
+  else if(path.startsWith('/visual-previews'))error('Cloudinary previews need the Python backend, CLOUDINARY_URL and generation add-on access. No external API was called.');
   else if(path==='/research-searches')result={items:[]};
   else if(path==='/explore'){const search={...initial().searches[0],searchId:id('research'),query:body.query,kind:body.kind,mode:'demo',createdAt:new Date().toISOString(),notice:'These are fixed fictional events for previewing the layout. Start the backend to search real destinations.'};drafts.set(search.searchId,search);result=search;}
   else if(path==='/itineraries'&&method==='GET')result={items:data.trips};

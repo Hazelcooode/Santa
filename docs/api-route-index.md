@@ -128,5 +128,10 @@ Generated from current OpenAPI. See [current behaviour](current-behavior.md).
 | GET | `/api/v1/media/{mid}/playback` | Play Media | research |
 | GET | `/api/v1/integrations` | Status | integrations |
 | POST | `/api/v1/integrations/{provider}/check` | Check | integrations |
+| POST | `/api/v1/visual-previews` | Start Temporary Visual Preview | research |
+| GET | `/api/v1/visual-previews/{sid}` | Preview Status | research |
+| DELETE | `/api/v1/visual-previews/{sid}` | Close Preview | research |
+| GET | `/api/v1/visual-previews/{sid}/content` | Owned Preview Stream / Download | research |
+| GET | `/api/v1/product-images/{key}` | Clean Product Image | research |
 
-124 operations.
+129 operations.
