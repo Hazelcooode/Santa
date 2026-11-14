@@ -9,7 +9,7 @@ A personal assistant for young people living alone, based on [ideas.txt](ideas.t
 Requires Node.js 20+. No dependency installation or API keys needed.
 
 ```powershell
-cd C:\Users\lonis\projects\hackathon\junction_2026\exa
+cd 'current folder'
 npm run dev
 ```
 
