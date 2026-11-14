@@ -99,3 +99,7 @@ Use 400 invalid input, 401 unauthenticated, 403 missing permission, 404 absent o
 ## Security and limits
 
 CSRF protection for cookie writes, strict CORS allowlist, body-size limits, per-user task quotas and safe URL handling. Retrieved URLs must be HTTP(S); backend fetch helpers block loopback/private networks and recheck redirects. Never return API keys or OAuth tokens. Paginate with `{items,nextCursor}` and authorize cursor context.
+
+## Product comparison and price watches
+
+Additional search/watch/check/history endpoints and payload semantics are specified in [Price watch](price-watch.md#proposed-api-additions). These remain proposed endpoints; the implemented frontend uses fixtures and local storage.

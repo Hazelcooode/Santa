@@ -5,6 +5,7 @@ These files describe the intended product and how to implement it. The root READ
 | Document | What it answers |
 | --- | --- |
 | [Product](product.md) | Audience, main journey, MVP, later work and success criteria |
+| [Price watch](price-watch.md) | Any-item comparison, exact variants, saved searches, alerts and live-monitor integration |
 | [Frontend](frontend.md) | Screens, state, accessibility and replacing fixtures |
 | [Backend](backend.md) | Services, jobs, state transitions, approvals and deployment |
 | [Exa agents](exa-agents.md) | Exactly three agents, inputs, tools, outputs and budgets |

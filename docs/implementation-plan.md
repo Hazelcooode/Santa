@@ -2,7 +2,7 @@
 
 ## Phase 0 — current frontend
 
-Delivered scope: six responsive screens, editable sample list, deterministic basket comparison, printable list, local demo approvals, laundry slot, saved ideas, scripted chat and privacy/check-in concepts. No backend connections. Verify using root scripts and browser walkthrough.
+Delivered scope: seven responsive screens, editable sample list, deterministic basket comparison, printable list, local demo approvals, laundry slot, saved ideas, scripted chat and privacy/check-in concepts. No backend connections. Verify using root scripts and browser walkthrough.
 
 ## Phase 1 — one live vertical slice
 
@@ -59,3 +59,7 @@ Current automated tests cover only frontend domain behavior. The matrix above is
 ## Known risks and decisions
 
 Retailer data may lack prices or store stock: use source-backed partial plans. Broad original scope can dilute the demo: complete groceries before adding integrations. Camera availability is not guaranteed: manual inventory is first-class. Self-hosted model requirements may exceed devices: benchmark actual hardware. Sensitive actions can fail after approval: explicit execution states and reconciliation are mandatory.
+
+## Price-watch extension
+
+Implemented: multi-category fixture comparison, exact/open watches, fee-aware ranking, unavailable-offer exclusion, persistent targets, synthetic histories and local target-crossing alerts. Live work: follow [price-watch](price-watch.md) for scheduler, snapshots, matching, API contracts and tests. No fourth agent is introduced.

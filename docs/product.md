@@ -18,6 +18,7 @@ Do not promise a global cheapest basket. Say “lowest known price among these m
 | --- | --- | --- | --- |
 | Groceries | Editable list, sample comparison, print, local plan flag | Exa evidence, constrained basket, approval, printable result | Retailer checkout and receipts |
 | Inventory | Seeded editable facts | Manual stock entry | On-device camera inference and user confirmation |
+| Price watch | Multi-category comparisons, exact/open watches, synthetic history and target alerts | Live any-item Exa research with normalized variants and fees | Scheduled refresh and consented notifications |
 | Laundry | Sample wardrobe, slot and checklist | Manual task and proposed calendar slot | Actual laundry-room reservation API |
 | Discovery | Three saved sample ideas | Live Exa event/product research with sources | Travel bundles and monitoring |
 | Companion | Scripted text and mood handoff | Model chat with explicit memory consent | Voice, social account integrations |

@@ -10,6 +10,7 @@ Visual direction: warm off-white surfaces, lilac assistant branding, muted peach
 | --- | --- | --- |
 | Overview | Navigation, mood → chat, source explanation | Fixtures + current browser list |
 | Groceries | Add, check off, filter, compare, print, review and save | Fixture prices + local state |
+| Price watch | Explore/exact matching, store totals, shortlist, saved watches, target editing, pause/resume, manual simulated checks and history | Multi-category fixtures + browser watch state |
 | Laundry | Review sample inventory, checklist, save slot | Fixtures + local flag |
 | Discover | Save/unsave three ideas | Fixtures |
 | Talk to Sola | Send text or suggestion chip | Deterministic scripted replies |
@@ -20,6 +21,16 @@ Visual direction: warm off-white surfaces, lilac assistant branding, muted peach
 `sola-demo-v1` stores item records, comparison mode, plan/laundry flags, memory preference, check-in flag and saved discovery IDs. Data is validated when loaded; invalid storage returns a fresh fixture state. Chat messages stay in memory. Text rendering escapes user input. Prices use integer cents. Newly added items have `unknownPrice: true` and are excluded from the known-price subtotal.
 
 The demo approval is a local Boolean, not a real authorization token. Backend integration must replace it with proposal IDs, versions and action status. The sample calendar is fixed; it does not test schedule conflicts. A demo check-in has no date or expiry semantics; real check-ins need timestamps and timezone-aware rules.
+
+## Price-watch implementation
+
+`src/price-model.js` owns the catalog, integer-money parsing, requirement matching, eligible offers, watch lifecycle and storage validation. `src/price-watch.js` owns the `/#prices` view and its delegated events. The app integrates this module through the existing render/dialog/toast helpers. No dependencies or backend were added.
+
+`sola-price-watch-v1` stores up to 50 watches separately from existing state, preserving older grocery/demo storage. Reset clears both keys. Each watch contains criteria, optional pinned product ID, selected sample sites, target, pause state, synthetic check index, bounded history and bounded alerts. Search-form edits are applied by comparison/save actions; current search and shortlist are session-only.
+
+The catalog spans electronics, footwear, clothing and tickets, while arbitrary named custom items can be saved with no fabricated quotes. Exact names/SKUs bind a variant; explore mode uses category, substring query, comma-separated required phrases and total budget. Delivered total includes fixture fees and tax; unavailable offers are excluded. Up to three products can be compared side by side in a dialog. These are mechanical fixture matches, not model recommendations.
+
+Only explicit Simulate check advances a watch, lowering sample prices by 4% of the base for up to eight steps. A target crossing adds one local alert; repeated checks below target do not duplicate it. Paused watches do not advance. Changing target clears previous alerts and re-arms evaluation. History is synthetic and labels the matched product for open searches. Refresh restores watch state, but no task runs on a timer or after closing the page. See [price-watch specification](price-watch.md).
 
 ## Integration boundary
 
@@ -42,4 +53,4 @@ For live work handle: no items; all items bought; no source matches; rate limits
 
 ## Verification
 
-Run `npm run check`, `npm test`, `npm run build`. In a browser test all six screens at desktop and 390 px width, keyboard navigation, Escape closing dialogs, refresh persistence, input escaping, reset, print preview, zero-item list and unpriced-item review. Backend and provider tests are future work; the existing tests cover calculation and input/state recovery only.
+Run `npm run check`, `npm test`, `npm run build`. In a browser test all seven screens at desktop and 390 px width, keyboard navigation, Escape closing dialogs, refresh persistence, input escaping, reset, print preview, zero-item list and unpriced-item review. Backend and provider tests are future work; the existing tests cover basket calculations, input/state recovery, cross-category matching, exact variants, fee-aware offer ranking, unavailable offers, threshold alerts, pause behavior, unknown quotes and watch persistence. Browser checks should also exercise category/mode controls, shortlist limits, target edits and refresh.

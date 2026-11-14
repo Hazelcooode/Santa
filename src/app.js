@@ -1,6 +1,8 @@
+import { priceWatchView, priceWatchClick, priceWatchChange, priceWatchSubmit, resetPriceWatches } from './price-watch.js';
 import { basketTotal, money, addItem, safeText as esc, loadState } from './model.js';
 
 const icons = {
+  prices: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="m6 14 4-4 4 3 4-6"/>',
   home: '<path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/>',
   groceries: '<path d="M3 3h2l3 12h11l3-9H6"/><circle cx="9" cy="20" r="1"/><circle cx="19" cy="20" r="1"/>',
   laundry: '<rect x="4" y="2" width="16" height="20" rx="3"/><circle cx="12" cy="13" r="5"/><path d="M7 5h2m3 0h5m-9 8q4 4 8 0"/>',
@@ -17,7 +19,7 @@ const icons = {
 const icon = name => `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.discover}</svg>`;
 let state;
 try { state = loadState(localStorage); } catch { state = loadState({ getItem: () => null }); }
-let page = ['home', 'groceries', 'laundry', 'discover', 'chat', 'safety'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home';
+let page = ['home', 'groceries', 'prices', 'laundry', 'discover', 'chat', 'safety'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home';
 let filter = 'All items';
 let messages = [{ from: 'sola', text: 'Hey Alex! Your oat milk is running low. I put together a small shopping list and a couple of weekend ideas. What would make today easier?' }];
 let toastTimer;
@@ -32,10 +34,10 @@ function render() {
   document.querySelector('#app').innerHTML = `
   <aside class="sidebar"><a class="brand" href="#home" aria-label="Sola home"><span class="brand-mark">s</span>sola<span class="brand-dot">•</span></a><p class="brand-tag">A little help with everyday.</p>
   <div class="workspace"><div class="avatar tiny">A</div><div>Alex's space<small>Personal assistant</small></div><span class="workspace-dot"></span></div>
-  <p class="nav-label">YOUR EVERYDAY</p><nav aria-label="Main navigation">${[['home', 'Overview'], ['groceries', 'Groceries'], ['laundry', 'Laundry'], ['discover', 'Discover'], ['chat', 'Talk to Sola'], ['safety', 'Wellbeing']].map(([id, text]) => `<a href="#${id}" aria-label="${text}" class="nav-item ${page === id ? 'active' : ''}" ${page === id ? 'aria-current="page"' : ''}>${icon(id)}<span>${text}</span>${id === 'groceries' ? `<span class="nav-count">${remaining()}</span>` : ''}${id === 'chat' ? '<span class="new-dot"></span>' : ''}</a>`).join('')}</nav>
+  <p class="nav-label">YOUR EVERYDAY</p><nav aria-label="Main navigation">${[['home', 'Overview'], ['groceries', 'Groceries'], ['prices', 'Price watch'], ['laundry', 'Laundry'], ['discover', 'Discover'], ['chat', 'Talk to Sola'], ['safety', 'Wellbeing']].map(([id, text]) => `<a href="#${id}" aria-label="${text}" class="nav-item ${page === id ? 'active' : ''}" ${page === id ? 'aria-current="page"' : ''}>${icon(id)}<span>${text}</span>${id === 'groceries' ? `<span class="nav-count">${remaining()}</span>` : ''}${id === 'chat' ? '<span class="new-dot"></span>' : ''}</a>`).join('')}</nav>
   <div class="sidebar-bottom"><div class="privacy-note">${icon('leaf')}<strong>Your space. Your say.</strong><p>You decide what Sola remembers and what happens next.</p>${button('Privacy & preferences ↗', 'settings', 'text-button')}</div>${button(`${icon('settings')} Settings & privacy`, 'settings', 'nav-item settings-button')}<div class="profile"><div class="avatar">A</div><div><strong>Alex Morgan</strong><small>Helsinki, Finland · demo</small></div></div></div></aside>
-  <div class="main-wrap"><header class="topbar"><div class="breadcrumb">My space <span>/</span> <strong>${{ home: 'Overview', groceries: 'Groceries', laundry: 'Laundry', discover: 'Discover', chat: 'Talk to Sola', safety: 'Wellbeing' }[page]}</strong></div><div class="topbar-right"><span class="demo-badge"><span></span>INTERACTIVE DEMO</span><span class="top-date">Sat, 14 November</span><button class="avatar small" data-action="settings" aria-label="Open preferences">A</button></div></header>
-  <main id="main" tabindex="-1">${({ home: homeView, groceries: groceryView, laundry: laundryView, discover: discoverView, chat: chatView, safety: safetyView })[page]()}
+  <div class="main-wrap"><header class="topbar"><div class="breadcrumb">My space <span>/</span> <strong>${{ home: 'Overview', groceries: 'Groceries', prices: 'Price watch', laundry: 'Laundry', discover: 'Discover', chat: 'Talk to Sola', safety: 'Wellbeing' }[page]}</strong></div><div class="topbar-right"><span class="demo-badge"><span></span>INTERACTIVE DEMO</span><span class="top-date">Sat, 14 November</span><button class="avatar small" data-action="settings" aria-label="Open preferences">A</button></div></header>
+  <main id="main" tabindex="-1">${({ home: homeView, groceries: groceryView, prices: priceWatchView, laundry: laundryView, discover: discoverView, chat: chatView, safety: safetyView })[page]()}
   <footer>Made for the little things that make a life. <span>Fictional data · No live integrations</span></footer></main></div>`;
   document.querySelector('h1')?.setAttribute('tabindex', '-1');
 }
@@ -44,6 +46,7 @@ function homeView() {
   <section class="hero"><div class="hero-copy"><span class="hero-kicker"><span class="spark">✳</span> YOUR EVERYDAY, A LITTLE LIGHTER</span><h2>Life on your own.<br>A little less alone.</h2><p>From an almost-empty fridge to a weekend worth<br class="desktop-break"> looking forward to. Let’s sort the small stuff.</p>${button(`Let’s plan your groceries ${icon('arrow')}`, 'groceries', 'button dark')}</div><div class="hero-art" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><span class="floating-note note-one">🥛 &nbsp; Oat milk? On it.</span><div class="mascot"><span class="mascot-eye left"></span><span class="mascot-eye right"></span><span class="mascot-smile"></span><div class="mascot-arm"></div></div><div class="plant"><span></span><span></span><span></span><i></i></div><span class="floating-note note-two"><span class="green-dot"></span> A little more headspace</span><div class="ground"></div></div></section>
   <div class="section-heading"><h2>Your day, at a glance</h2><span class="muted small-text">Small things. Already moving.</span></div>
   <section class="summary-grid">${summaryCard('groceries', 'peach', 'Fridge looking a little empty?', `${remaining()} items on your list`, 'A basket, compared across two demo stores.', 'Review shopping list', 'groceries')}${summaryCard('laundry', 'lavender', 'Fresh clothes, less juggling.', state.laundry ? 'Your demo slot is saved' : 'Laundry fits at 16:00', 'A quiet gap in your sample calendar.', 'See your laundry plan', 'laundry')}${summaryCard('discover', 'green', 'Something just for you.', 'A weekend with possibilities', 'A market, a little music, and a change of scene.', 'Find your next little thing', 'discover')}</section>
+  <div class="price-home-banner"><div><strong>Thinking about your next purchase?</strong><p>Compare items, choose your variant, and watch for a better price.</p></div>${button('Explore price watch →', 'prices', 'button secondary')}</div>
   <div class="home-columns"><section class="panel"><div class="section-heading"><h2>A little plan for today</h2>${pill('SAMPLE CALENDAR')}</div><div class="timeline"><div class="timeline-item"><span class="time">14:00</span><div class="timeline-mark peach">${icon('groceries')}</div><div><strong>Pick up the essentials</strong><p>Demo Market · 30 min · proposed</p></div>${button('Review', 'review', 'text-button')}</div><div class="timeline-item"><span class="time">16:00</span><div class="timeline-mark lavender">${icon('laundry')}</div><div><strong>A fresh start for your wardrobe</strong><p>Shared laundry · 60 min · ${state.laundry ? 'saved locally' : 'available in sample'}</p></div></div><div class="timeline-item"><span class="time">19:00</span><div class="timeline-mark green">${icon('leaf')}</div><div><strong>A little time for yourself</strong><p>No to-do list required.</p></div></div></div></section><section class="companion-card"><div class="mini-sola">✳</div><span class="eyebrow">A MOMENT FOR YOU</span><h2>How’s your day<br>feeling so far?</h2><p>You don’t need a reason to check in.</p><div class="moods">${[['☀️', 'Good'], ['🌤️', 'Okay'], ['🌧️', 'A bit much']].map(([emoji, text]) => button(`<span>${emoji}</span>${text}`, 'mood', 'mood', `data-value="${text}"`)).join('')}</div></section></div>
   <div class="transparency">${icon('link')}<div><strong>Good help comes with a source.</strong><span>Live Exa research is planned. Every deal here is a clearly labeled placeholder.</span></div>${button('See how it works ↗', 'sources', 'text-button')}</div>`;
 }
@@ -70,9 +73,10 @@ function sendChat(text) {
   messages.push({ from: 'sola', text: reply }); render(); document.querySelector('#chat-input')?.focus(); document.querySelector('.chat-messages')?.scrollTo(0, 100000);
 }
 document.addEventListener('click', event => {
+  if (priceWatchClick(event, render, toast, modal, () => document.querySelector('#detail-dialog').close())) return;
   const el = event.target.closest('[data-action]'); if (!el) return;
   const action = el.dataset.action;
-  if (['groceries', 'laundry', 'discover', 'chat'].includes(action)) return navigate(action);
+  if (['groceries', 'prices', 'laundry', 'discover', 'chat'].includes(action)) return navigate(action);
   if (action === 'close') return document.querySelector('#detail-dialog').close();
   if (action === 'review') return review();
   if (action === 'approve') { state.approved = true; persist(); document.querySelector('#detail-dialog').close(); render(); return toast('Demo plan saved. Nothing was purchased or booked.'); }
@@ -91,12 +95,13 @@ document.addEventListener('click', event => {
   if (action === 'contacts') return modal('Trusted contacts · concept', '<p>The full setup will require a verified contact, their consent, a preview of what gets shared, and clear cancellation and delivery states.</p><p class="muted">No contact or location data is collected in this prototype.</p>');
   if (action === 'settings') return modal('Your space. Your say.', `<p class="muted">These preferences are stored only in this browser. No model or camera is connected.</p><label class="consent-label"><input type="checkbox" id="memory-consent" ${state.memory ? 'checked' : ''}> Allow personal preference memory in the future (demo consent only)</label><p class="small-text muted">This records your choice, not any extracted memories. Shopping lists and saved plans already use browser storage.</p>`, button('Save preferences', 'save-settings', 'button dark') + button('Reset demo data', 'reset', 'button secondary'));
   if (action === 'save-settings') { state.memory = document.querySelector('#memory-consent').checked; persist(); document.querySelector('#detail-dialog').close(); render(); return toast('Demo preferences saved on this device.'); }
-  if (action === 'reset') { try { localStorage.removeItem('sola-demo-v1'); } catch {} state = loadState({ getItem: () => null }); messages = [{ from: 'sola', text: 'A fresh start. What would make today easier? This is a scripted demo.' }]; document.querySelector('#detail-dialog').close(); render(); return toast('Demo data reset.'); }
+  if (action === 'reset') { resetPriceWatches(); try { localStorage.removeItem('sola-demo-v1'); } catch {} state = loadState({ getItem: () => null }); messages = [{ from: 'sola', text: 'A fresh start. What would make today easier? This is a scripted demo.' }]; document.querySelector('#detail-dialog').close(); render(); return toast('Demo data reset.'); }
 });
-document.addEventListener('change', event => { if (event.target.matches('[data-item]')) { const item = state.items.find(i => i.id === event.target.dataset.item); if (item) { item.done = event.target.checked; state.approved = false; persist(); render(); } } });
+document.addEventListener('change', event => { if (priceWatchChange(event, render, toast)) return; if (event.target.matches('[data-item]')) { const item = state.items.find(i => i.id === event.target.dataset.item); if (item) { item.done = event.target.checked; state.approved = false; persist(); render(); } } });
 document.addEventListener('submit', event => {
+  if (priceWatchSubmit(event, render, toast)) return;
   if (event.target.id === 'add-form') { event.preventDefault(); state.items = addItem(state.items, new FormData(event.target).get('item')); state.approved = false; persist(); render(); document.querySelector('#item-name')?.focus(); }
   if (event.target.id === 'chat-form') { event.preventDefault(); sendChat(new FormData(event.target).get('message')); }
 });
-window.addEventListener('hashchange', () => { const next = location.hash.slice(1); if (['home', 'groceries', 'laundry', 'discover', 'chat', 'safety'].includes(next) && next !== page) { page = next; render(); } });
+window.addEventListener('hashchange', () => { const next = location.hash.slice(1); if (['home', 'groceries', 'prices', 'laundry', 'discover', 'chat', 'safety'].includes(next) && next !== page) { page = next; render(); } });
 render();

@@ -72,3 +72,7 @@ These are product limits, not claims about Exa quotas or prices. Tune with real 
 ## Failure behavior
 
 No results → broaden one allowed dimension and disclose it. Blocked page → mark unavailable and offer the original link. Missing price → keep an unpriced item. Conflicting sources → show conflict and prefer the most applicable primary source. Budget impossible → show the gap, do not silently drop essentials. Rate limit → partial results + retry time. Research cannot create an external action by itself.
+
+## Any-item comparison and monitoring
+
+Coordinator accepts open requirements or an exact canonical variant, Researcher collects comparable seller offers and mandatory fees, and Planner explains eligible alternatives. The deterministic scheduler reruns these roles for due watches; alert thresholds and deduplication remain code, not agent decisions. See [Price watch](price-watch.md) for category identity rules, ticket fee/time matching and the live implementation backlog.

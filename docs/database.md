@@ -73,3 +73,7 @@ Create proposal revision and invalidate the old revision in one transaction. App
 ## Migration sequence
 
 001 users/preferences/consents → 002 inventory/lists → 003 tasks/runs/steps/jobs → 004 sources/claims → 005 proposals/items/approvals/actions → 006 audit/RLS/indexes. Seed only fictional demo records. Test cross-user access, transactional approval and backup restore before connecting real accounts.
+
+## Product and price-watch extension
+
+See [Price watch database additions](price-watch.md#proposed-database-additions) for canonical products/variants, seller offers, append-only price observations, user-owned watches, scheduled checks and deduplicated alerts. These additions are not yet migrations.

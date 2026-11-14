@@ -1,6 +1,6 @@
 # Feature roadmap and model ideas
 
-This is a proposal, not implemented functionality. Preserve the three roles in [Exa agents](exa-agents.md); different models power those roles rather than becoming additional agents.
+Roadmap entries below describe future live functionality. A frontend-only [general-item price watch](price-watch.md) is now implemented with fixtures and manual simulation. Preserve the three roles in [Exa agents](exa-agents.md); different models power those roles rather than becoming additional agents.
 
 ## Ranked feature ideas
 
@@ -10,6 +10,7 @@ This is a proposal, not implemented functionality. Preserve the three roles in [
 | P0 | Source drawer and “why this?” | Trust and challenge source clarity | Claim-to-source mapping, retrieval time and applicability |
 | P0 | Budget + one-store/split-store options | User-controlled tradeoffs | Integer totals, comparable units, excluded fees visible |
 | P1 | Live weekend discovery | A positive, personal second use case | Exa organizer sources, current dates, timezone and cancellation info |
+| P1 | Any-item comparison + price monitoring | Choose by requirements or track a specific variant across sites | Frontend demo implemented; live evidence, scheduled refresh, fee/variant matching and consented alerts remain |
 | P1 | Manual pantry + recurring essentials | Useful without cameras | Editable stock thresholds, no overconfident inference |
 | P1 | Calendar-aware chores | Less scheduling friction | Consented free/busy read, timezone handling, no overlapping plan |
 | P2 | Local camera inventory | Household context without uploading video | On-device inference, confidence threshold, confirmation queue |

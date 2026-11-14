@@ -57,3 +57,7 @@ Set connection and total timeouts. Retry network/429/5xx errors at most twice wi
 Deploy static UI separately from API and worker. Use same-site session cookies where possible; otherwise explicit CORS allowlist and CSRF controls. Provision PostgreSQL, apply migrations as a release step, configure server-only keys and encrypted integration secrets. Run health/readiness endpoints, structured logs with task IDs, and metrics for latency, retrieval failure, unsupported claims and action delivery.
 
 Development, staging and production use separate provider keys/databases. Backups and restore must be tested before storing real personal data. Do not log chat bodies, camera facts or precise location by default. See [privacy](privacy-security.md) for retention and deletion requirements.
+
+## General price monitoring
+
+The [Price watch specification](price-watch.md) extends the same three agents to arbitrary items and exact variants. A deterministic scheduler owns recurring jobs and alert evaluation; there is no fourth agent. Current frontend checks are simulations, not live jobs.
