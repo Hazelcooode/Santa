@@ -184,7 +184,7 @@ button{margin-top:18px;width:100%;padding:12px;border:0;border-radius:8px;backgr
 <script>
 document.getElementById('f').addEventListener('submit',async e=>{e.preventDefault();const err=document.getElementById('err');err.textContent='';
 const r=await fetch('/api/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e.target.email.value,password:e.target.password.value})});
-if(r.ok){const n=new URLSearchParams(location.search).get('next')||'/mobile/';location.href=n.startsWith('/')&&!n.startsWith('//')?n:'/mobile/';}
+if(r.ok){const n=new URLSearchParams(location.search).get('next')||'/';location.href=n.startsWith('/')&&!n.startsWith('//')?n:'/';}
 else{const j=await r.json().catch(()=>({}));err.textContent=(j.error&&j.error.message)||'Sign-in failed';}});
 </script></body></html>"""
 
