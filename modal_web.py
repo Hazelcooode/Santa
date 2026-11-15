@@ -13,7 +13,7 @@ Modal prints https://<workspace>--sola-web-web.modal.run (website at /, people
 create accounts at /register). The mobile app paths (/mobile) are not served here.
 """
 import os
-import shlex
+import base64
 import threading
 import time
 from pathlib import Path
@@ -54,7 +54,8 @@ image = (
     .add_local_file(str(SRC / "index.html"), f"{APP}/index.html", copy=True)
     # current_world still says "Taimi"; the app is called Sola (renamed on hazel). Replace the
     # whole word only, so code identifiers such as TaimiLaundryUI or taimi-bridge.js keep working.
-    .run_commands("python -c " + shlex.quote(REBRAND))
+    # Each build command becomes one Dockerfile line, so the script travels base64-encoded on one line.
+    .run_commands('python -c "import base64; exec(base64.b64decode(\'%s\'))"' % base64.b64encode(REBRAND.encode()).decode())
 )
 
 app = modal.App("sola-web", image=image)
