@@ -18,7 +18,7 @@ Sola is shipped as **two products** that share one design language and one backe
 | | 📱 **Mobile app** | 🖥️ **Website** |
 | --- | --- | --- |
 | What it's for | Easy everyday use: Sola notices, you tap to approve | Deep research for household shopping |
-| Where to try it | **Project Demo link:** <https://hazel-wanqi-wang--sola-mobile-web.us-east.modal.run/mobile/> (best on a phone) | **Other Link** in the submission |
+| Where to try it | **Project Demo link:** <https://hazel-wanqi-wang--sola-mobile-web.us-east.modal.run/mobile/> (best on a phone) | **Other Link** <https://hazel-wanqi-wang--sola-web-web.us-east.modal.run/> |
 | Code | branch [`hazel`](../../tree/hazel) | branch [`current_world`](../../tree/current_world) |
 
 `main` holds an earlier merge of the two and is **not** the version to judge. See [Code structure](#code-structure) for a file-by-file map of each branch.
