@@ -86,6 +86,8 @@ def _inject(path, before_tag, snippet):
 
 @app.get("/", include_in_schema=False)
 def website(request: Request):
+    if settings.mobile_only:
+        return RedirectResponse("/mobile/", status_code=307)
     if not _gate(request):
         return RedirectResponse("/login?next=/", status_code=303)
     return HTMLResponse(_inject(REPO_DIR / "index.html", "</body>", '<script src="/taimi-bridge.js" defer></script>' + EDGE_SCRIPTS))
@@ -130,5 +132,6 @@ app.mount("/laundry-frames", _NoCacheFiles(directory=str(STATIC / "laundry-frame
 # On-device detector: transformers.js + ONNX Runtime + OWL-ViT weights, downloaded once (git-ignored).
 (STATIC / "vendor").mkdir(exist_ok=True)
 app.mount("/vendor", StaticFiles(directory=str(STATIC / "vendor")), name="vendor")
-app.mount("/src", StaticFiles(directory=str(WEB_SRC)), name="web-src")
+if not settings.mobile_only:
+    app.mount("/src", StaticFiles(directory=str(WEB_SRC)), name="web-src")
 app.mount("/mobile", StaticFiles(directory=str(MOBILE)), name="mobile")

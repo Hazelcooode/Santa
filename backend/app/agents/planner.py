@@ -12,14 +12,15 @@ from datetime import date
 from .. import db, mock_data, regions
 from ..exa_client import domain_of, sources_from
 
-ART_KEYS = [("jazz", "jazz"), ("music", "jazz"), ("concert", "jazz"), ("club", "jazz"), ("climb", "climb"), ("boulder", "climb"),
+ART_KEYS = [(" ai ", "science"), ("science", "science"), ("workshop", "science"), ("technology", "science"), ("robot", "science"),
+            ("jazz", "jazz"), ("music", "jazz"), ("concert", "jazz"), ("club", "jazz"), ("climb", "climb"), ("boulder", "climb"),
             ("hike", "climb"), ("sport", "climb"), ("market", "market"), ("christmas", "market"), ("food", "market"),
             ("design", "design"), ("art", "design"), ("museum", "design"), ("aurora", "aurora"), ("lapland", "aurora"),
             ("ski", "aurora"), ("ferry", "ferry"), ("boat", "ferry"), ("cruise", "ferry"), ("sea", "ferry")]
 
 
 def _art_for(text):
-    low = (text or "").lower()
+    low = " %s " % " ".join(re.findall(r"\w+", (text or "").lower()))
     for k, v in ART_KEYS:
         if k in low:
             return v

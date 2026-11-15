@@ -65,6 +65,12 @@ class Settings:
     scheduler_enabled = os.getenv("SCHEDULER", "1") == "1"
     scheduler_interval_s = _int("SCHEDULER_INTERVAL_S", 60)
 
+    # Deployment shape: MOBILE_ONLY=1 serves only the mobile app (/ redirects to /mobile/);
+    # ALLOW_REGISTRATION=0 offers sign-in to existing accounts (the demo account) only.
+    mobile_only = os.getenv("MOBILE_ONLY", "0") == "1"
+    allow_registration = os.getenv("ALLOW_REGISTRATION", "1") == "1"
+
+    show_demo_password = os.getenv("SHOW_DEMO_PASSWORD", "0") == "1"   # print it on the sign-in page
     test_email = os.getenv("TEST_ACCOUNT_EMAIL", "test@taimi.app")
     test_password = os.getenv("TEST_ACCOUNT_PASSWORD", "taimi-demo-2026")
 

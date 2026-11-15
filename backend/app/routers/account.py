@@ -76,6 +76,8 @@ def login(body: LoginIn, request: Request, response: Response):
 
 @router.post("/api/v1/auth/register", status_code=201)
 def register(body: RegisterIn, request: Request, response: Response):
+    if not settings.allow_registration:
+        raise ApiError(403, "REGISTRATION_DISABLED", "This deployment offers sign-in to the demo account only.")
     if "@" not in body.email:
         raise ApiError(400, "INVALID_INPUT", "Enter a valid email.")
     cc = (body.country or "").upper()[:2] or None
@@ -189,7 +191,11 @@ else{const j=await r.json().catch(()=>({}));err.textContent=(j.error&&j.error.me
 
 @router.get("/login", response_class=HTMLResponse, include_in_schema=False)
 def login_page():
-    return HTMLResponse(LOGIN_HTML.replace("__EMAIL__", settings.test_email))
+    import html
+    page = LOGIN_HTML.replace("__EMAIL__", html.escape(settings.test_email))
+    if settings.show_demo_password:
+        page = page.replace("(password in backend/README.md)", "· password <b>%s</b>" % html.escape(settings.test_password))
+    return HTMLResponse(page)
 
 
 @router.get("/logout", include_in_schema=False)

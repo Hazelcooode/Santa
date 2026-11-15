@@ -713,15 +713,47 @@
     /* =========================================================
        EXPLORE — events, travel, products
        ========================================================= */
-    function art(key) {
-        var A = {
-            jazz: '<rect width="160" height="80" fill="#353B35"/><circle cx="40" cy="40" r="22" fill="#B8A1D3"/><circle cx="40" cy="40" r="6" fill="#353B35"/><path d="M90 60 Q96 20 120 18 L124 24 Q104 28 102 60 Q100 70 92 68 Z" fill="#D6744C"/><circle cx="135" cy="20" r="3" fill="#FFFEFA"/><circle cx="70" cy="18" r="2" fill="#FFFEFA"/><path d="M60 62 h20 M64 56 v12 M76 56 v12" stroke="#8E9C7E" stroke-width="3"/>',
-            climb: '<rect width="160" height="80" fill="#8E9C7E"/><path d="M0 80 L40 10 L80 80 Z" fill="#B8A1D3" opacity=".9"/><path d="M60 80 L110 0 L160 80 Z" fill="#353B35" opacity=".85"/><circle cx="96" cy="30" r="4" fill="#D6744C"/><circle cx="112" cy="46" r="5" fill="#FFFEFA"/><circle cx="100" cy="60" r="4" fill="#B8A1D3"/><circle cx="36" cy="40" r="3" fill="#FFFEFA"/>',
-            market: '<rect width="160" height="80" fill="#B8A1D3"/><rect x="20" y="36" width="50" height="34" fill="#FFFEFA"/><path d="M14 36 L45 16 L76 36 Z" fill="#D6744C"/><rect x="88" y="40" width="50" height="30" fill="#353B35"/><path d="M82 40 L113 22 L144 40 Z" fill="#8E9C7E"/><circle cx="45" cy="54" r="5" fill="#D6744C"/><circle cx="113" cy="55" r="5" fill="#B8A1D3"/>',
-            design: '<rect width="160" height="80" fill="#FFFEFA"/><circle cx="44" cy="40" r="24" fill="#D6744C"/><rect x="74" y="16" width="34" height="48" fill="#8E9C7E"/><path d="M118 64 L138 18 L154 64 Z" fill="#B8A1D3"/><circle cx="91" cy="40" r="7" fill="#FFFEFA"/>',
-            aurora: '<rect width="160" height="80" fill="#353B35"/><path d="M0 40 Q40 10 80 34 T160 22 L160 44 Q120 56 80 46 T0 58 Z" fill="#8E9C7E" opacity=".9"/><path d="M0 30 Q50 6 90 26 T160 12" fill="none" stroke="#FFFEFA" stroke-width="1" opacity=".5"/><path d="M0 80 L30 58 L54 72 L86 52 L120 74 L160 56 L160 80 Z" fill="#FFFEFA"/><circle cx="130" cy="14" r="1.5" fill="#FFFEFA"/><circle cx="24" cy="12" r="1.2" fill="#FFFEFA"/><rect x="66" y="58" width="16" height="12" fill="#B8A1D3"/>',
-            ferry: '<rect width="160" height="80" fill="#FFFEFA"/><rect y="56" width="160" height="24" fill="#8E9C7E"/><path d="M30 56 L130 56 L120 68 L40 68 Z" fill="#353B35"/><rect x="50" y="40" width="60" height="16" fill="#FFFEFA" stroke="#353B35" stroke-width="2"/><rect x="70" y="28" width="10" height="12" fill="#D6744C"/><circle cx="130" cy="20" r="10" fill="#B8A1D3"/>'
+    /* Event & travel backgrounds: themed vector scenes on a 2:1 canvas (1200x600).
+       Cards show them sliced to the same 16:8 box the old patches used; gallery
+       tiles align right so the motif stays in the square. */
+    function scene(id, ink, accent, motif) {
+        return '<defs><linearGradient id="bg-' + id + '" x2="1" y2="1"><stop stop-color="' + ink + '"/><stop offset="1" stop-color="' + accent + '"/></linearGradient></defs>' +
+            '<rect width="1200" height="600" fill="url(#bg-' + id + ')"/>' +
+            '<circle cx="1050" cy="560" r="260" fill="#ffffff" opacity=".06"/><circle cx="120" cy="-40" r="200" fill="#ffffff" opacity=".05"/>' + motif;
+    }
+    var SCENES = (function () {
+        var bars = '', i, h;
+        for (i = 0; i < 20; i++) { h = 60 + Math.abs(Math.sin(i * 0.65)) * 260; bars += '<rect x="' + (640 + i * 27) + '" y="' + (300 - h / 2) + '" width="18" height="' + h + '" rx="9" fill="#ffce87" opacity=".75"/>'; }
+        var lights = '';
+        for (i = 0; i < 9; i++) lights += '<circle cx="' + (600 + i * 65) + '" cy="' + (150 + (i % 2) * 30) + '" r="9" fill="#ffd6a5"/>';
+        return {
+            jazz: scene('jazz', '#40254f', '#b657a6', bars),
+            climb: scene('climb', '#283d3b', '#6b8f71',
+                '<path d="M560 600 L760 220 L960 600 Z" fill="#f2d0a4" opacity=".85"/><path d="M820 600 L1030 160 L1200 600 Z" fill="#ffffff" opacity=".35"/>' +
+                '<circle cx="1000" cy="260" r="12" fill="#6b8f71"/><circle cx="1040" cy="360" r="12" fill="#ffffff"/><circle cx="990" cy="450" r="12" fill="#f2d0a4"/>'),
+            market: scene('market', '#4a2545', '#b5446e',
+                '<rect x="620" y="330" width="200" height="190" fill="#ffffff" opacity=".9"/><path d="M600 330 L720 230 L840 330 Z" fill="#b5446e"/>' +
+                '<rect x="860" y="330" width="200" height="190" fill="#ffffff" opacity=".9"/><path d="M840 330 L960 230 L1080 330 Z" fill="#ffd6a5"/>' + lights),
+            science: scene('science', '#122858', '#654ce5',
+                '<g transform="translate(900 300)" fill="none" stroke="#60ddd2" stroke-width="4" opacity=".85"><ellipse rx="220" ry="76"/><ellipse rx="220" ry="76" transform="rotate(60)"/><ellipse rx="220" ry="76" transform="rotate(120)"/>' +
+                '<circle r="38" fill="#ffffff" stroke="none"/><circle cx="210" cy="-24" r="14" fill="#ffffff"/></g>'),
+            design: scene('design', '#2b2d42', '#d6744c',
+                '<circle cx="720" cy="300" r="120" fill="#f4e3c1"/><rect x="860" y="170" width="140" height="260" fill="#ffffff" opacity=".85"/><path d="M1030 430 L1110 170 L1190 430 Z" fill="#d6744c" opacity=".9"/>'),
+            aurora: scene('aurora', '#14213d', '#2f6f62',
+                '<path d="M560 260 Q760 120 920 240 T1200 170 L1200 280 Q1000 340 860 300 T560 340 Z" fill="#9be7c4" opacity=".75"/>' +
+                '<path d="M560 200 Q780 90 960 190 T1200 110" fill="none" stroke="#ffffff" stroke-width="2" opacity=".45"/>' +
+                '<path d="M560 600 L700 470 L790 540 L930 420 L1060 540 L1200 460 L1200 600 Z" fill="#ffffff" opacity=".92"/>' +
+                '<circle cx="640" cy="80" r="3" fill="#fff"/><circle cx="1080" cy="60" r="3" fill="#fff"/><circle cx="980" cy="130" r="3" fill="#fff"/><circle cx="760" cy="50" r="3" fill="#fff"/>'),
+            ferry: scene('ferry', '#1d3557', '#457b9d',
+                '<rect x="560" y="420" width="640" height="180" fill="#f1c27d" opacity=".55"/><path d="M660 420 L1120 420 L1070 490 L710 490 Z" fill="#ffffff"/>' +
+                '<rect x="760" y="340" width="260" height="80" rx="8" fill="#ffffff" opacity=".9"/><rect x="860" y="280" width="40" height="60" fill="#457b9d"/><circle cx="1080" cy="140" r="54" fill="#f1c27d" opacity=".9"/>')
         };
+    })();
+    function art(key, tile) {
+        if (SCENES[key] || !/^boot/.test(key || '')) {
+            return '<svg viewBox="0 0 1200 600" preserveAspectRatio="' + (tile ? 'xMaxYMid' : 'xMidYMid') + ' slice" aria-hidden="true">' + (SCENES[key] || SCENES.design) + '</svg>';
+        }
+        var A = {};
         var svg = A[key];
         if (!svg && /^boot/.test(key)) {
             var cols = { boot1: ['#353B35', '#B8A1D3'], boot2: ['#6b3b22', '#353B35'], boot3: ['#8E9C7E', '#353B35'], boot4: ['#FFFEFA', '#D6744C'], boot5: ['#353B35', '#8E9C7E'], boot6: ['#353B35', '#FFFEFA'] }[key];
@@ -729,7 +761,7 @@
             svg = '<rect width="160" height="160" fill="' + bg + '"/><path d="M50 30 L90 30 L92 92 Q130 96 136 116 L136 126 L44 126 L44 100 Q46 60 50 30 Z" fill="' + cols[0] + '"/><rect x="44" y="120" width="92" height="10" rx="3" fill="' + cols[1] + '"/><path d="M52 40 h36" stroke="' + cols[1] + '" stroke-width="3"/>';
             return '<svg viewBox="0 0 160 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + svg + '</svg>';
         }
-        return '<svg viewBox="0 0 160 80" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + (svg || A.design) + '</svg>';
+        return '<svg viewBox="0 0 160 80" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + svg + '</svg>';
     }
 
     function renderExplore() {
@@ -776,7 +808,7 @@
                 '<div class="result-meta">' + esc(r.when) + ' · ' + esc(r.where) + ' · <b>' + esc(r.price) + '</b></div>' +
                 '<div class="result-why">' + esc(r.why) + '</div>' +
                 '<div class="result-more">' +
-                    '<div class="gallery"><div>' + art(r.art) + '</div><div style="filter:hue-rotate(40deg)">' + art(r.art) + '</div><div style="filter:saturate(.6)">' + art(r.art) + '<span class="play"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="rgba(41,45,44,.7)"/><path d="M10 8l6 4-6 4z" fill="#FFFEFA"/></svg></span></div></div>' +
+                    '<div class="gallery"><div>' + art(r.art, true) + '</div><div style="filter:hue-rotate(40deg)">' + art(r.art, true) + '</div><div style="filter:saturate(.6)">' + art(r.art, true) + '<span class="play"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="rgba(41,45,44,.7)"/><path d="M10 8l6 4-6 4z" fill="#FFFEFA"/></svg></span></div></div>' +
                     (r.details ? '<ul class="list" style="margin-top:12px">' + r.details.map(function (d) { return '<li style="padding:7px 0"><span class="label-caps" style="width:54px;flex:none">' + esc(d.k) + '</span><span class="small">' + esc(d.v) + '</span></li>'; }).join('') + '</ul>' : '') +
                     (r.posts || []).map(function (p) { return '<div class="social-post"><div class="who">' + esc(p.who) + ' · social</div>' + esc(p.text) + '</div>'; }).join('') +
                 '</div>' +
