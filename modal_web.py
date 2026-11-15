@@ -13,6 +13,7 @@ Modal prints https://<workspace>--sola-web-web.modal.run (website at /, people
 create accounts at /register). The mobile app paths (/mobile) are not served here.
 """
 import os
+import shlex
 import threading
 import time
 from pathlib import Path
@@ -21,6 +22,17 @@ import modal
 
 SRC = Path(os.environ.get("SOLA_WEB_SRC", Path(__file__).parent / ".." / "Santa-web")).resolve()
 APP = "/app"
+REBRAND = (
+    "import pathlib,re\n"
+    "n=0\n"
+    "for d in ('/app/backend/app','/app/src'):\n"
+    "    for f in pathlib.Path(d).rglob('*'):\n"
+    "        if f.suffix in ('.py','.js','.css','.html') and f.is_file():\n"
+    "            t=f.read_text(encoding='utf-8'); u=re.sub(r'\\bTaimi\\b','Sola',t)\n"
+    "            if u!=t: f.write_text(u,encoding='utf-8'); n+=1\n"
+    "p=pathlib.Path('/app/index.html'); p.write_text(re.sub(r'\\bTaimi\\b','Sola',p.read_text(encoding='utf-8')),encoding='utf-8')\n"
+    "print('rebranded',n,'files')\n"
+)
 
 image = (
     modal.Image.debian_slim(python_version="3.12")
@@ -35,10 +47,14 @@ image = (
         "CLOUDINARY_FOLDER": "sola-web",
         "PYTHONDONTWRITEBYTECODE": "1",
     })
-    .add_local_dir(str(SRC / "backend" / "app"), f"{APP}/backend/app", ignore=["**/__pycache__", "static/vendor/**"])
-    .add_local_dir(str(SRC / "src"), f"{APP}/src")
-    .add_local_dir(str(SRC / "mobile"), f"{APP}/mobile")   # present only because the backend mounts it; blocked below
-    .add_local_file(str(SRC / "index.html"), f"{APP}/index.html")
+    # copy=True so the rebrand step below can edit the files inside the image
+    .add_local_dir(str(SRC / "backend" / "app"), f"{APP}/backend/app", copy=True, ignore=["**/__pycache__", "static/vendor/**"])
+    .add_local_dir(str(SRC / "src"), f"{APP}/src", copy=True)
+    .add_local_dir(str(SRC / "mobile"), f"{APP}/mobile", copy=True)   # present only because the backend mounts it; blocked below
+    .add_local_file(str(SRC / "index.html"), f"{APP}/index.html", copy=True)
+    # current_world still says "Taimi"; the app is called Sola (renamed on hazel). Replace the
+    # whole word only, so code identifiers such as TaimiLaundryUI or taimi-bridge.js keep working.
+    .run_commands("python -c " + shlex.quote(REBRAND))
 )
 
 app = modal.App("sola-web", image=image)
